@@ -1,0 +1,37 @@
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: microagents-api-vpa
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: microagents-api
+  updatePolicy:
+    updateMode: "Auto"
+  resourcePolicy:
+    containerPolicies:
+    - containerName: "*"
+      minAllowed:
+        cpu: "100m"
+        memory: "256Mi"
+      maxAllowed:
+        cpu: "4000m"
+        memory: "8Gi"
+      controlledResources: ["cpu", "memory"]
+---
+apiVersion: cost-analyzer.io/v1alpha1
+kind: CostAnalysis
+metadata:
+  name: microagents-cost-report
+spec:
+  schedule: "0 2 * * *"
+  namespace: microagents-prod
+  output:
+    type: s3
+    location: s3://cost-reports/microagents/
+  optimizations:
+    - type: rightsize
+      threshold: 20
+    - type: idle
+      maxIdleHours: 24

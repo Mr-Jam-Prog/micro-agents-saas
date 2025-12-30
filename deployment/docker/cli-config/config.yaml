@@ -1,0 +1,115 @@
+# Configuration par défaut du CLI MicroAgents
+
+# Configuration générale
+general:
+  version: 1.0
+  environment: production
+  auto_update: true
+  check_updates: true
+
+# Configuration de l'authentification
+auth:
+  provider: jwt
+  token_lifetime: 86400
+  auto_refresh: true
+  cache_tokens: true
+  sso_enabled: false
+
+# Configuration du cache
+cache:
+  enabled: true
+  ttl: 3600
+  max_size: 100MB
+  strategy: lru
+  dir: /tmp/.microagents/cache
+
+# Configuration du mode offline
+offline:
+  enabled: false
+  data_dir: /tmp/.microagents/offline
+  sync_on_connect: true
+
+# Configuration des plugins
+plugins:
+  enabled: true
+  dir: /plugins
+  auto_update: true
+  registry: "https://plugins.microagents.io"
+  signing_required: true
+
+# Configuration multi-cloud
+cloud:
+  default_provider: aws
+  auto_discover: true
+  cache_credentials: true
+  providers:
+    aws:
+      enabled: true
+      profile: default
+      region: us-east-1
+    azure:
+      enabled: true
+      subscription_id: null
+    gcp:
+      enabled: true
+      project: null
+    kubernetes:
+      enabled: true
+      context: null
+
+# Configuration des mises à jour
+update:
+  enabled: true
+  channel: stable
+  check_interval: 86400
+  auto_download: false
+  auto_apply: false
+  rollback_on_failure: true
+
+# Configuration du logging
+log:
+  level: INFO
+  format: json
+  file: /tmp/.microagents/microagents.log
+  rotation:
+    size: 10MB
+    backup_count: 5
+    compress: true
+
+# Configuration des performances
+performance:
+  parallel_agents: 10
+  cache_enabled: true
+  timeout: 30
+  retry_attempts: 3
+  connection_pool_size: 100
+
+# Configuration du réseau
+network:
+  timeout: 30
+  retries: 3
+  proxy: ""
+  verify_ssl: true
+  dns_cache_ttl: 300
+
+# Configuration de la sécurité
+security:
+  mask_sensitive_data: true
+  audit_logging: true
+  certificate_verification: true
+  allow_insecure: false
+
+# Configuration du monitoring
+monitoring:
+  enabled: true
+  metrics_port: 9090
+  health_check_interval: 30
+  performance_metrics: true
+
+# Configuration des notifications
+notifications:
+  enabled: true
+  providers:
+    email: false
+    slack: false
+    webhook: false

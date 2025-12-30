@@ -1,0 +1,641 @@
+# ==============================================================================
+# MICROAGENTS PLATFORM - .gitignore
+# ==============================================================================
+
+# Environment and Configuration Files
+# ==============================================================================
+.env
+.env.local
+.env.development
+.env.production
+.env.staging
+.env.test
+.env.*.local
+.env.*.backup
+.envrc
+.direnv/
+
+# Local Configuration
+.local-config/
+.local/
+config/local.*
+config/private.*
+config/secrets.*
+*.local.yaml
+*.local.yml
+*.local.json
+*.local.toml
+
+# Secrets and Credentials
+# ==============================================================================
+*.key
+*.pem
+*.crt
+*.cert
+*.pfx
+*.p12
+id_rsa
+id_dsa
+*.priv
+*.gpg
+*.asc
+*.secret
+*.token
+credentials.json
+service-account-key.json
+firebase-key.json
+app-keys.json
+
+# AWS Specific
+# ==============================================================================
+.aws/
+aws_credentials
+aws_config
+~/.aws/credentials
+~/.aws/config
+*.aws
+aws-cli/
+amplify/
+
+# Azure Specific
+# ==============================================================================
+.azure/
+azureProfile.json
+azureConfig.json
+*.azure
+azure-cli/
+
+# Google Cloud Platform (GCP)
+# ==============================================================================
+.gcloud/
+gcp-key.json
+gcp-credentials.json
+*.gcp
+gcloud/
+application_default_credentials.json
+
+# Other Cloud Providers
+# ==============================================================================
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+terraform.tfvars
+*.tfplan
+.terraform.lock.hcl
+terraform.tfstate.lock.info
+
+.ssh/
+known_hosts
+
+# Build Artifacts and Distribution
+# ==============================================================================
+dist/
+build/
+out/
+target/
+release/
+bin/
+obj/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Python Specific
+# ==============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+# ==============================================================================
+venv/
+.venv/
+env/
+.env/
+ENV/
+env.bak/
+venv.bak/
+pyvenv.cfg
+pythonenv*
+
+# Node.js / JavaScript
+# ==============================================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.lock-wscript
+.yarn-integrity
+.pnpm-debug.log*
+.pnpm-store/
+
+# Coverage Reports
+# ==============================================================================
+.coverage
+.coverage.*
+htmlcov/
+.coverage_html/
+*.cover
+*.coveragerc
+coverage.xml
+*.coverage
+lcov.info
+
+# Testing and Quality
+# ==============================================================================
+.pytest_cache/
+.tox/
+.mypy_cache/
+.ruff_cache/
+.vscode-test/
+test-results/
+test-reports/
+junit.xml
+test.xml
+coverage/
+.trash/
+
+# Log Files
+# ==============================================================================
+*.log
+logs/
+log/
+*.log.*
+*.logs
+debug.log
+error.log
+access.log
+nginx.log
+uwsgi.log
+gunicorn.log
+
+# Database Files
+# ==============================================================================
+*.db
+*.sqlite
+*.sqlite3
+db.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+data.db
+*.mdb
+*.ldb
+*.frm
+*.myd
+*.myi
+*.ibd
+*.dbf
+*.mdf
+*.ldf
+*.sdf
+
+# Cache Files
+# ==============================================================================
+.cache/
+.cache*/
+**/.cache/
+*.cache
+.cache.metadata
+
+# IDE and Editor Files
+# ==============================================================================
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.vscode/ipch/
+.vscode/.ropeproject
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# PyCharm
+.idea/
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/dictionaries
+.idea/**/dataSources/
+.idea/**/dataSources.ids
+.idea/**/dataSources.xml
+.idea/**/dataSources.local.xml
+.idea/**/sqlDataSources.xml
+.idea/**/dynamic.xml
+.idea/**/uiDesigner.xml
+.idea/**/gradle.xml
+.idea/**/libraries
+*.iws
+
+# Eclipse
+.settings/
+.project
+.classpath
+.metadata/
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# Vim
+[._]*.s[a-w][a-z]
+[._]s[a-w][a-z]
+*.un~
+Session.vim
+.netrwhist
+*~
+
+# Emacs
+*~
+\#*
+.\#*
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# OS Generated Files
+# ==============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# Windows
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+
+# Kubernetes and Docker
+# ==============================================================================
+.kube/
+kubeconfig
+*.kubeconfig
+k8s-secrets/
+*.dockerignore
+docker-compose.override.yml
+docker-compose.*.yml
+
+# Docker
+docker-data/
+docker-volumes/
+*.dockerfile
+docker-compose.env
+
+# Documentation
+# ==============================================================================
+_site/
+.sass-cache/
+.jekyll-cache/
+.jekyll-metadata
+.sass-cache/
+.jekyll/
+
+# Jupyter Notebook
+# ==============================================================================
+.ipynb_checkpoints
+*.ipynb_checkpoints
+
+# Miscellaneous
+# ==============================================================================
+*.swp
+*.swo
+*~
+*.bak
+*.backup
+*.tmp
+*.temp
+*.pid
+*.seed
+*.pid.lock
+*.pidfile
+.dump
+.redis
+.mongodb
+.celerybeat-schedule
+.celerybeat.pid
+
+# Project Specific
+# ==============================================================================
+
+# MicroAgents Platform Specific
+# ------------------------------------------------------------------------------
+# Agent specific caches
+.agents/
+.microagents/
+agent-cache/
+agent-state/
+agent-logs/
+
+# Model files and machine learning
+models/
+*.model
+*.h5
+*.pkl
+*.joblib
+*.pt
+*.pth
+*.onnx
+
+# Training data
+training-data/
+datasets/
+*.csv
+*.parquet
+*.feather
+
+# Reports and exports
+reports/
+exports/
+*.pdf
+*.xlsx
+*.docx
+
+# Uploads and temporary files
+uploads/
+tmp/
+temp/
+media/
+staticfiles/
+
+# API documentation
+api-docs/
+openapi.json
+swagger.json
+
+# Binary files (images, etc.)
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.ico
+*.svg
+*.mp4
+*.mp3
+*.wav
+*.zip
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# Development tools
+.pre-commit-config.yaml.local
+.mega-linter.yml
+
+# CI/CD
+.circleci/config.yml.local
+.github/workflows/*.local.yml
+.gitlab-ci.yml.local
+.azure-pipelines.yml.local
+.jenkins/
+.gitlab/merge_request_templates/
+
+# Performance profiling
+.profile
+*.prof
+cProfile.out
+memory.prof
+line_profiler.out
+
+# Security scans
+security-scans/
+*.sarif
+.trivyignore
+.grype.yaml
+.syft.yaml
+
+# Package Managers
+# ==============================================================================
+
+# Poetry
+poetry.lock
+
+# Pipenv
+Pipfile.lock
+
+# Pip
+pip-log.txt
+pip-delete-this-directory.txt
+
+# PDM
+.pdm.toml
+
+# Hatch
+.hatch/
+
+# UV
+.uv/
+
+# Conda
+.conda/
+conda-meta/
+
+# NPM / Yarn / PNPM
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+shrinkwrap.yaml
+
+# Composer (PHP)
+composer.lock
+vendor/
+
+# Bundler (Ruby)
+Gemfile.lock
+.bundle/
+
+# Maven (Java)
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+
+# Gradle (Java)
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# SBT (Scala)
+target/
+project/target
+project/project
+
+# Go
+vendor/
+go.sum
+
+# Rust
+Cargo.lock
+target/
+
+# Dart/Flutter
+.packages
+.pub-cache/
+.pub/
+build/
+
+# Mobile Development
+# ==============================================================================
+# Android
+android/app/build/
+android/.gradle/
+android/local.properties
+android/.idea/workspace.xml
+android/.idea/navEditor.xml
+android/captures/
+
+# iOS
+ios/Pods/
+ios/*.xcworkspace/
+ios/*.xcodeproj/xcuserdata/
+ios/*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# React Native
+.expo/
+.expo-shared/
+android/
+ios/
+web-build/
+
+# Expo
+.expo/
+.expo-shared/
+
+# Unity
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+
+# Game Development
+# ==============================================================================
+*.unityproj
+*.mat
+*.fbx
+*.mb
+*.ma
+*.obj
+*.max
+*.blend
+*.asset
+
+# LaTeX files
+# ==============================================================================
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc
+*.xdv
+
+# Markdown lint
+.markdownlint.json
+
+# Spell checking
+.spellcheck.yml
+
+# Email templates
+*.eml
+
+# Backup files from migrations
+*.orig
+
+# Load testing results
+loadtest-results/
+
+# Benchmark results
+benchmark-results/
+
+# Profiling data
+profiling/
+
+# Machine learning experiments
+mlruns/
+wandb/
+
+# Monitoring data
+prometheus-data/
+grafana-data/
+loki-data/
+
+# Backup and Archive
+# ==============================================================================
+*.backup.*
+backup/
+archive/
+*.zip
+*.tar
+*.gz
+*.bz2
+*.7z
+*.rar
+
+# Temporary directories created by tests
+test_tmp/
+test_temp/
+
+# Local overrides
+# ==============================================================================
+# Local overrides should be added to .gitignore.local
+# This file should not be committed
+.gitignore.local
+.git/info/exclude
+
+# END OF FILE
+# ==============================================================================

@@ -1,0 +1,529 @@
+# deployment/kubernetes/charts/micro-agents/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "micro-agents.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "micro-agents.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: micro-agents-platform
+  annotations:
+    # CI/CD annotations
+    deployment.kubernetes.io/revision: "{{ .Release.Revision }}"
+    kubernetes.io/change-cause: "{{ .Values.deployment.changeCause }}"
+    # Backup annotations
+    backup.velero.io/backup-volumes: "data,logs"
+    backup.velero.io/schedule: "daily-3am"
+    # Observability annotations
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+    grafana.com/dashboard: "micro-agents"
+    # Service mesh annotations
+    sidecar.istio.io/inject: "{{ .Values.istio.enabled }}"
+    linkerd.io/inject: "{{ .Values.linkerd.enabled }}"
+    # Cost optimization
+    cost-optimization/enabled: "true"
+    cost-optimization/auto-scale: "true"
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: {{ .Values.deployment.revisionHistoryLimit }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: {{ .Values.deployment.rollingUpdate.maxSurge }}
+      maxUnavailable: {{ .Values.deployment.rollingUpdate.maxUnavailable }}
+  selector:
+    matchLabels:
+      {{- include "micro-agents.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: api
+  template:
+    metadata:
+      labels:
+        {{- include "micro-agents.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: api
+        app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+        # Pod labels for monitoring
+        metrics-enabled: "true"
+        logs-enabled: "true"
+        tracing-enabled: "true"
+      annotations:
+        # Fluentd annotations for log routing
+        fluentd.io/parser: "json"
+        fluentd.io/tag: "microagents.api"
+        # Network policy annotations
+        networking/egress: "restricted"
+        networking/ingress: "api-gateway-only"
+        # Resource annotations
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+        # Sidecar annotations
+        sidecar.jaeger.io/inject: "{{ .Values.jaeger.enabled }}"
+        sidecar.prometheus.io/inject: "true"
+        # Custom annotations
+        microagents.io/environment: {{ .Values.environment | quote }}
+        microagents.io/deployment-id: {{ randAlphaNum 8 | lower | quote }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      # Security context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+        fsGroupChangePolicy: "OnRootMismatch"
+        seccompProfile:
+          type: "RuntimeDefault"
+        supplementalGroups: [1001]
+      # Service account
+      serviceAccountName: {{ include "micro-agents.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
+      # Priority class for critical workloads
+      priorityClassName: {{ .Values.priorityClassName | default "high-priority" }}
+      # Affinity rules
+      affinity:
+        podAffinity:
+          {{- if .Values.affinity.podAffinity.enabled }}
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - {{ include "micro-agents.name" . }}
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values:
+                  - api
+              topologyKey: kubernetes.io/hostname
+          {{- end }}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                - {{ include "micro-agents.name" . }}
+              - key: app.kubernetes.io/component
+                operator: In
+                values:
+                - api
+            topologyKey: kubernetes.io/hostname
+          {{- if .Values.affinity.podAntiAffinity.zone }}
+          - labelSelector:
+              matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                - {{ include "micro-agents.name" . }}
+            topologyKey: topology.kubernetes.io/zone
+          {{- end }}
+        nodeAffinity:
+          {{- if .Values.affinity.nodeAffinity }}
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              {{- range $key, $value := .Values.affinity.nodeAffinity.required }}
+              - key: {{ $key }}
+                operator: In
+                values:
+                {{- range $value }}
+                - {{ . | quote }}
+                {{- end }}
+              {{- end }}
+          preferredDuringSchedulingIgnoredDuringExecution:
+            {{- range .Values.affinity.nodeAffinity.preferred }}
+            - weight: {{ .weight }}
+              preference:
+                matchExpressions:
+                - key: {{ .key }}
+                  operator: In
+                  values:
+                  {{- range .values }}
+                  - {{ . | quote }}
+                  {{- end }}
+            {{- end }}
+          {{- end }}
+      # Topology spread constraints
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: {{ include "micro-agents.name" . }}
+            app.kubernetes.io/component: api
+      - maxSkew: 2
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: {{ include "micro-agents.name" . }}
+            app.kubernetes.io/component: api
+      # Init containers
+      initContainers:
+      # Configuration and secret setup
+      - name: init-config
+        image: busybox:1.36
+        command: ['sh', '-c', 'echo "Initializing configuration..." && sleep 2']
+        securityContext:
+          runAsUser: 1001
+          runAsGroup: 1001
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - name: config
+          mountPath: /etc/microagents
+        - name: secrets
+          mountPath: /etc/secrets
+          readOnly: true
+      # Database migration
+      - name: init-db-migration
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ['sh', '-c', 'python -m alembic upgrade head']
+        securityContext:
+          runAsUser: 1001
+          runAsGroup: 1001
+          readOnlyRootFilesystem: true
+        env:
+        {{- include "micro-agents.envVars" . | nindent 8 }}
+        envFrom:
+        - secretRef:
+            name: {{ include "micro-agents.fullname" . }}-secrets
+        - configMapRef:
+            name: {{ include "micro-agents.fullname" . }}-config
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+      # Cache warmup
+      - name: init-cache-warmup
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ['sh', '-c', 'python -c "from src.registry.cache.redis_handler import RedisHandler; import asyncio; asyncio.run(RedisHandler().warmup())"']
+        securityContext:
+          runAsUser: 1001
+          runAsGroup: 1001
+          readOnlyRootFilesystem: true
+        env:
+        {{- include "micro-agents.envVars" . | nindent 8 }}
+        envFrom:
+        - secretRef:
+            name: {{ include "micro-agents.fullname" . }}-secrets
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+      # Main application container
+      containers:
+      - name: api
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http-api
+          containerPort: 8000
+          protocol: TCP
+        - name: http-health
+          containerPort: 8080
+          protocol: TCP
+        - name: http-metrics
+          containerPort: 9090
+          protocol: TCP
+        # Environment configuration
+        env:
+        {{- include "micro-agents.envVars" . | nindent 8 }}
+        # Additional environment variables
+        - name: KUBERNETES_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: KUBERNETES_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: KUBERNETES_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: KUBERNETES_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        envFrom:
+        - secretRef:
+            name: {{ include "micro-agents.fullname" . }}-secrets
+        - configMapRef:
+            name: {{ include "micro-agents.fullname" . }}-config
+        # Resource requests and limits
+        resources:
+          {{- if .Values.resources }}
+          requests:
+            memory: {{ .Values.resources.requests.memory | quote }}
+            cpu: {{ .Values.resources.requests.cpu | quote }}
+            {{- if .Values.resources.requests.ephemeralStorage }}
+            ephemeral-storage: {{ .Values.resources.requests.ephemeralStorage | quote }}
+            {{- end }}
+          limits:
+            memory: {{ .Values.resources.limits.memory | quote }}
+            cpu: {{ .Values.resources.limits.cpu | quote }}
+            {{- if .Values.resources.limits.ephemeralStorage }}
+            ephemeral-storage: {{ .Values.resources.limits.ephemeralStorage | quote }}
+            {{- end }}
+            {{- if .Values.resources.limits.hugepages }}
+            hugepages-{{ .Values.resources.limits.hugepages.size }}: {{ .Values.resources.limits.hugepages.amount | quote }}
+            {{- end }}
+          {{- else }}
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+            ephemeral-storage: "1Gi"
+          limits:
+            memory: "2Gi"
+            cpu: "1"
+            ephemeral-storage: "2Gi"
+          {{- end }}
+        # Security context for container
+        securityContext:
+          runAsUser: 1001
+          runAsGroup: 1001
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          privileged: false
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - NET_BIND_SERVICE
+          seccompProfile:
+            type: "RuntimeDefault"
+        # Liveness probe
+        livenessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: http-health
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+          httpHeaders:
+          - name: X-Health-Check
+            value: "liveness"
+        # Readiness probe
+        readinessProbe:
+          httpGet:
+            path: /api/v1/health/readiness
+            port: http-health
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 15
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 2
+          httpHeaders:
+          - name: X-Health-Check
+            value: "readiness"
+        # Startup probe
+        startupProbe:
+          httpGet:
+            path: /api/v1/health/startup
+            port: http-health
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 30
+        # Lifecycle hooks
+        lifecycle:
+          postStart:
+            exec:
+              command:
+              - sh
+              - -c
+              - echo "Container started at $(date)" >> /proc/1/fd/1
+          preStop:
+            exec:
+              command:
+              - sh
+              - -c
+              - echo "Graceful shutdown initiated at $(date)" && sleep 30
+        # Volume mounts
+        volumeMounts:
+        - name: config
+          mountPath: /etc/microagents
+          readOnly: true
+        - name: secrets
+          mountPath: /etc/secrets
+          readOnly: true
+        - name: data
+          mountPath: /app/data
+        - name: logs
+          mountPath: /app/logs
+        - name: tmp
+          mountPath: /tmp
+        # Custom command
+        command: ["/app/entrypoint.sh"]
+        args:
+        - "--host"
+        - "0.0.0.0"
+        - "--port"
+        - "8000"
+        - "--workers"
+        - "4"
+        - "--log-level"
+        - "info"
+      # Observability sidecar - Prometheus exporter
+      {{- if .Values.observability.prometheus.enabled }}
+      - name: prometheus-exporter
+        image: prom/node-exporter:v1.6.1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: metrics
+          containerPort: 9100
+          protocol: TCP
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "10m"
+          limits:
+            memory: "64Mi"
+            cpu: "50m"
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65534
+          readOnlyRootFilesystem: true
+        args:
+        - "--path.procfs=/host/proc"
+        - "--path.sysfs=/host/sys"
+        - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+        volumeMounts:
+        - name: proc
+          mountPath: /host/proc
+          readOnly: true
+        - name: sys
+          mountPath: /host/sys
+          readOnly: true
+        - name: root
+          mountPath: /rootfs
+          readOnly: true
+      {{- end }}
+      # Observability sidecar - Fluentd log collector
+      {{- if .Values.observability.fluentd.enabled }}
+      - name: fluentd-logger
+        image: fluent/fluentd:v1.16.2
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "25m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        securityContext:
+          runAsUser: 1001
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - name: logs
+          mountPath: /var/log/app
+        - name: fluentd-config
+          mountPath: /fluentd/etc
+          readOnly: true
+        - name: varlog
+          mountPath: /var/log
+        env:
+        - name: FLUENTD_CONF
+          value: "fluentd.conf"
+      {{- end }}
+      # Service mesh sidecar (auto-injected by Istio/Linkerd)
+      # Volumes
+      volumes:
+      # Configuration volumes
+      - name: config
+        configMap:
+          name: {{ include "micro-agents.fullname" . }}-config
+          optional: false
+      - name: secrets
+        secret:
+          secretName: {{ include "micro-agents.fullname" . }}-secrets
+          optional: false
+      # Data volumes
+      - name: data
+        {{- if .Values.persistence.enabled }}
+        persistentVolumeClaim:
+          claimName: {{ .Values.persistence.existingClaim | default (include "micro-agents.fullname" . ) }}
+        {{- else }}
+        emptyDir: {}
+        {{- end }}
+      - name: logs
+        emptyDir:
+          sizeLimit: {{ .Values.logs.sizeLimit | default "10Gi" }}
+      - name: tmp
+        emptyDir:
+          sizeLimit: {{ .Values.temp.sizeLimit | default "2Gi" }}
+      # Observability volumes
+      {{- if .Values.observability.prometheus.enabled }}
+      - name: proc
+        hostPath:
+          path: /proc
+      - name: sys
+        hostPath:
+          path: /sys
+      - name: root
+        hostPath:
+          path: /
+      {{- end }}
+      {{- if .Values.observability.fluentd.enabled }}
+      - name: fluentd-config
+        configMap:
+          name: {{ include "micro-agents.fullname" . }}-fluentd-config
+      - name: varlog
+        hostPath:
+          path: /var/log
+      {{- end }}
+      # Node selector for specialized workloads
+      {{- if .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      {{- end }}
+      # Tolerations for tainted nodes
+      {{- if .Values.tolerations }}
+      tolerations:
+        {{- toYaml .Values.tolerations | nindent 8 }}
+      {{- end }}
+      # Runtime class for Kata Containers/gVisor
+      {{- if .Values.runtimeClassName }}
+      runtimeClassName: {{ .Values.runtimeClassName }}
+      {{- end }}
+      # Image pull secrets
+      {{- if .Values.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.image.pullSecrets | nindent 8 }}
+      {{- end }}
+      # Termination grace period
+      terminationGracePeriodSeconds: 90
+      # DNS configuration
+      dnsConfig:
+        options:
+        - name: ndots
+          value: "2"
+        - name: single-request-reopen
+        searches:
+        - {{ .Release.Namespace }}.svc.cluster.local
+        - svc.cluster.local
+        - cluster.local
+      # Host aliases
+      {{- if .Values.hostAliases }}
+      hostAliases:
+        {{- toYaml .Values.hostAliases | nindent 8 }}
+      {{- end }}

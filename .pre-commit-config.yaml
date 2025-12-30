@@ -1,0 +1,319 @@
+# .pre-commit-config.yaml
+repos:
+  # Hook pour vérifier les messages de commit
+  - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
+    rev: v9.10.0
+    hooks:
+      - id: commitlint
+        stages: [commit-msg]
+        additional_dependencies:
+          - "@commitlint/config-conventional@17.8.1"
+        args:
+          - --config=.commitlintrc.json
+          - --edit=.git/COMMIT_EDITMSG
+
+  # Formattage avec black
+  - repo: https://github.com/psf/black
+    rev: 24.1.1
+    hooks:
+      - id: black
+        name: black - formattage Python
+        language_version: python3.12
+        args: [--safe]
+        exclude: |
+          (?x)^(
+            .*\.pyc|
+            .*\.so|
+            .*\.egg-info|
+            build/|
+            dist/|
+            .venv/|
+            venv/|
+            node_modules/|
+            migrations/|
+            __pycache__/|
+            \.mypy_cache/|
+            \.pytest_cache/|
+            \.ruff_cache/|
+            docs/_build/|
+            generated/|
+            protos/|
+            \.git/
+          )
+
+  # Linting et tri des imports avec ruff
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.6
+    hooks:
+      - id: ruff
+        name: ruff - linting et réorganisation des imports
+        args: [--fix]
+        exclude: |
+          (?x)^(
+            .*\.pyc|
+            .*\.so|
+            .*\.egg-info|
+            build/|
+            dist/|
+            .venv/|
+            venv/|
+            node_modules/|
+            migrations/|
+            __pycache__/|
+            \.mypy_cache/|
+            \.pytest_cache/|
+            \.ruff_cache/|
+            docs/_build/|
+            generated/|
+            protos/|
+            \.git/
+          )
+      - id: ruff-format
+        name: ruff - formatage (alternative à black)
+        exclude: |
+          (?x)^(
+            .*\.pyc|
+            .*\.so|
+            .*\.egg-info|
+            build/|
+            dist/|
+            .venv/|
+            venv/|
+            node_modules/|
+            migrations/|
+            __pycache__/|
+            \.mypy_cache/|
+            \.pytest_cache/|
+            \.ruff_cache/|
+            docs/_build/|
+            generated/|
+            protos/|
+            \.git/
+          )
+
+  # Vérification de types avec mypy
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.7.1
+    hooks:
+      - id: mypy
+        name: mypy - vérification de types
+        additional_dependencies:
+          - pydantic
+          - types-requests
+          - types-pyyaml
+          - types-python-dateutil
+          - types-setuptools
+        args:
+          - --strict
+          - --ignore-missing-imports
+          - --show-error-codes
+          - --no-error-summary
+          - --no-pretty
+        exclude: |
+          (?x)^(
+            .*\.pyc|
+            .*\.so|
+            .*\.egg-info|
+            build/|
+            dist/|
+            .venv/|
+            venv/|
+            node_modules/|
+            migrations/|
+            __pycache__/|
+            \.mypy_cache/|
+            \.pytest_cache/|
+            \.ruff_cache/|
+            docs/_build/|
+            generated/|
+            protos/|
+            tests/.*\.py|
+            \.git/
+          )
+
+  # Analyse de sécurité avec bandit
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.7
+    hooks:
+      - id: bandit
+        name: bandit - analyse de sécurité
+        args:
+          - -c
+          - .bandit.yml
+          - -r
+          - microagents
+        exclude: |
+          (?x)^(
+            .*\.pyc|
+            .*\.so|
+            .*\.egg-info|
+            build/|
+            dist/|
+            .venv/|
+            venv/|
+            node_modules/|
+            migrations/|
+            __pycache__/|
+            \.mypy_cache/|
+            \.pytest_cache/|
+            \.ruff_cache/|
+            docs/_build/|
+            generated/|
+            protos/|
+            tests/|
+            \.git/
+          )
+        additional_dependencies:
+          - bandit[toml]
+
+  # Vérification des secrets dans le code
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        name: detect-secrets - détection de secrets
+        args:
+          - --baseline
+          - .secrets.baseline
+          - --exclude-files
+          - '.*\.(pyc|so|egg-info|lock|md|txt|json|yaml|yml|toml)$'
+          - --exclude-lines
+          - '^\s*#.*$'
+        exclude: |
+          (?x)^(
+            build/|
+            dist/|
+            .venv/|
+            venv/|
+            node_modules/|
+            __pycache__/|
+            \.mypy_cache/|
+            \.pytest_cache/|
+            \.ruff_cache/|
+            docs/_build/|
+            \.git/
+          )
+
+  # Vérification des dépendances obsolètes
+  - repo: https://github.com/pycqa/pydocstyle
+    rev: 6.3.0
+    hooks:
+      - id: pydocstyle
+        name: pydocstyle - documentation Python
+        args:
+          - --convention=google
+          - --add-ignore=D104,D107,D203,D213,D406,D407,D413
+        exclude: |
+          (?x)^(
+            .*\.pyc|
+            .*\.so|
+            .*\.egg-info|
+            build/|
+            dist/|
+            .venv/|
+            venv/|
+            node_modules/|
+            migrations/|
+            __pycache__/|
+            \.mypy_cache/|
+            \.pytest_cache/|
+            \.ruff_cache/|
+            docs/_build/|
+            generated/|
+            protos/|
+            tests/|
+            \.git/
+          )
+
+  # Tests unitaires avant commit
+  - repo: local
+    hooks:
+      - id: pytest-check
+        name: pytest - tests rapides
+        entry: bash -c 'cd "$(git rev-parse --show-toplevel)" && python -m pytest tests/unit/ -xvs --tb=short'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [push]
+        exclude: |
+          (?x)^(
+            .*\.(md|txt|json|yaml|yml|toml|ini|cfg|conf)$|
+            .*\.(png|jpg|jpeg|gif|svg|ico)$|
+            .*\.(csv|tsv|xlsx|jsonl)$|
+            Dockerfile|
+            \.dockerignore|
+            \.gitignore|
+            \.pre-commit-config\.yaml|
+            \.editorconfig|
+            \.bandit\.yml|
+            \.secrets\.baseline|
+            \.commitlintrc\.json|
+            LICENSE|
+            README\.md|
+            CHANGELOG\.md
+          )
+
+  # Vérification des fichiers YAML/JSON
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-yaml
+        name: check-yaml - validation YAML
+        args: [--allow-multiple-documents]
+      - id: check-json
+        name: check-json - validation JSON
+      - id: check-toml
+        name: check-toml - validation TOML
+      - id: check-added-large-files
+        name: check-added-large-files - fichiers volumineux
+        args: [--maxkb=1024]
+      - id: end-of-file-fixer
+        name: end-of-file-fixer - fin de fichier
+      - id: trailing-whitespace
+        name: trailing-whitespace - espaces en fin de ligne
+      - id: mixed-line-ending
+        name: mixed-line-ending - fins de ligne mixtes
+        args: [--fix=lf]
+
+  # Vérification des imports non utilisés
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.2.6
+    hooks:
+      - id: codespell
+        name: codespell - correction orthographique
+        args:
+          - --ignore-words-list=ans,creat,fo,hist,iff,iam,inout,ist,nam,nd,nin,referer,ser,tim,upto,uint
+          - --skip="*.pyc,*.so,*.egg-info,build/,dist/,venv/,__pycache__/,*.lock,*.json,*.yaml,*.yml,*.toml"
+        exclude: |
+          (?x)^(
+            build/|
+            dist/|
+            .venv/|
+            venv/|
+            node_modules/|
+            __pycache__/|
+            \.mypy_cache/|
+            \.pytest_cache/|
+            \.ruff_cache/|
+            docs/_build/|
+            \.git/
+          )
+
+  # Vérification des dépendances de sécurité
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.7
+    hooks:
+      - id: bandit-safety
+        name: bandit - sécurité des dépendances
+        entry: bash -c 'cd "$(git rev-parse --show-toplevel)" && python -m pip list --outdated --format=json | python -c "import sys, json; deps = json.load(sys.stdin); [print(f\"✗ {d[\"name\"]}: {d[\"version\"]} → {d[\"latest_version\"]}\") for d in deps]; sys.exit(0 if len(deps) == 0 else 1)"'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [push]
+
+# Configuration globale
+default_stages: [commit, push]
+default_install_hook_types: [pre-commit, pre-push, commit-msg]
+fail_fast: false
+exclude: '^docs/_build/|^generated/|^protos/|\.min\.(js|css)$|\.map$|\.(pyc|so|egg-info)$'
+minimum_pre_commit_version: "2.18.0"

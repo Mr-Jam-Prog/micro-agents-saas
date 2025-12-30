@@ -1,0 +1,1257 @@
+# Configuration Environnement de Production - MicroAgents Platform
+# Fichier: config/environments/prod.yaml
+# Usage: Chargé automatiquement lorsque ENV=production
+# Sécurité: Ce fichier contient des secrets - NE PAS COMMITER
+
+version: 2.0
+environment: production
+deployment_id: "prod-${DEPLOYMENT_ID}"
+region: ${AWS_REGION:-eu-west-1}
+last_updated: 2024-12-01T00:00:00Z
+deployment_tier: "mission-critical"
+
+# ==================== IDENTIFICATION & METADATA ====================
+app:
+  name: "MicroAgents Platform"
+  version: "${APP_VERSION:-2.0.0}"
+  instance_id: "prod-${POD_NAME:-${HOSTNAME}}"
+  debug: false
+  testing: false
+  
+  # URLs de production
+  base_url: "https://api.microagents.io"
+  api_url: "https://api.microagents.io/api/v1"
+  web_url: "https://app.microagents.io"
+  docs_url: "https://docs.microagents.io"
+  
+  # Domaines
+  domains:
+    primary: "microagents.io"
+    api: "api.microagents.io"
+    app: "app.microagents.io"
+    docs: "docs.microagents.io"
+    status: "status.microagents.io"
+  
+  # Load Balancer
+  load_balancer:
+    arn: "${AWS_ALB_ARN}"
+    dns_name: "${AWS_ALB_DNS}"
+    health_check_path: "/health"
+    health_check_interval: 30
+    health_check_timeout: 5
+    healthy_threshold: 2
+    unhealthy_threshold: 3
+
+# ==================== SECURITY - HIGH STRICTNESS ====================
+security:
+  mode: "production"
+  level: "maximum"
+  
+  # Authentication - JWT Strict
+  auth:
+    enabled: true
+    require_auth_for_all_endpoints: true
+    jwt_secret: "${JWT_SECRET}"  # 256-bit minimum
+    jwt_algorithm: "RS256"
+    public_key: "${JWT_PUBLIC_KEY}"
+    private_key: "${JWT_PRIVATE_KEY}"
+    jwt_expiry_minutes: 15
+    refresh_token_expiry_days: 7
+    max_sessions_per_user: 5
+    
+    # MFA Configuration
+    mfa:
+      required_for_admins: true
+      required_for_sensitive_operations: true
+      timeout_minutes: 10
+    
+    # Password Policy
+    password_policy:
+      min_length: 12
+      require_uppercase: true
+      require_lowercase: true
+      require_numbers: true
+      require_special_chars: true
+      max_age_days: 90
+      history_size: 5
+  
+  # CORS - Restrictif
+  cors:
+    enabled: true
+    allow_origins:
+      - "https://app.microagents.io"
+      - "https://admin.microagents.io"
+      - "https://partners.microagents.io"
+    allow_credentials: true
+    allow_methods:
+      - "GET"
+      - "POST"
+      - "PUT"
+      - "PATCH"
+      - "DELETE"
+      - "OPTIONS"
+    allow_headers:
+      - "Authorization"
+      - "Content-Type"
+      - "X-Requested-With"
+      - "X-CSRF-Token"
+      - "X-Client-Version"
+    expose_headers:
+      - "X-RateLimit-Limit"
+      - "X-RateLimit-Remaining"
+      - "X-RateLimit-Reset"
+    max_age: 3600  # 1 hour
+  
+  # Rate Limiting Strict
+  rate_limiting:
+    enabled: true
+    storage_backend: "redis"
+    strategy: "fixed-window"
+    
+    limits:
+      api:
+        requests: 1000
+        window: 60  # per minute
+        per_user: true
+      
+      auth:
+        requests: 10
+        window: 60  # per minute
+        per_ip: true
+      
+      webhooks:
+        requests: 100
+        window: 60
+        per_tenant: true
+      
+      admin:
+        requests: 100
+        window: 60
+        per_user: true
+    
+    # Rate Limit Headers
+    headers_enabled: true
+    retry_after_header: true
+  
+  # CSRF Protection
+  csrf:
+    enabled: true
+    cookie_name: "csrf_token"
+    header_name: "X-CSRF-Token"
+    cookie_secure: true
+    cookie_http_only: true
+    cookie_same_site: "strict"
+  
+  # Security Headers
+  headers:
+    hsts:
+      enabled: true
+      max_age: 31536000  # 1 year
+      include_subdomains: true
+      preload: true
+    
+    content_security_policy:
+      enabled: true
+      policy: "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.microagents.io; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://storage.microagents.io;"
+    
+    x_content_type_options: true
+    x_frame_options: "DENY"
+    x_xss_protection: "1; mode=block"
+    referrer_policy: "strict-origin-when-cross-origin"
+  
+  # API Keys
+  api_keys:
+    rotation_days: 90
+    max_keys_per_user: 3
+    require_ip_whitelist: true
+    audit_all_usage: true
+  
+  # Network Security
+  network:
+    ip_whitelist:
+      enabled: true
+      cidr_blocks:
+        - "10.0.0.0/8"  # VPC internal
+        - "${OFFICE_IP}/32"
+        - "${VPN_IP_RANGE}"
+    
+    deny_public_access: true
+    require_vpc_endpoints: true
+
+# ==================== DATABASE - POSTGRESQL HA ====================
+database:
+  # PostgreSQL High Availability
+  engine: "postgresql"
+  provider: "aws-rds"
+  
+  # Primary Database
+  primary:
+    host: "${DB_PRIMARY_HOST}"
+    port: 5432
+    name: "microagents_prod"
+    username: "${DB_USERNAME}"
+    password: "${DB_PASSWORD}"
+    ssl_mode: "verify-full"
+    ssl_root_cert: "${DB_SSL_ROOT_CERT}"
+  
+  # Read Replicas
+  replicas:
+    - host: "${DB_REPLICA_1_HOST}"
+      port: 5432
+      name: "microagents_prod"
+      role: "read"
+    
+    - host: "${DB_REPLICA_2_HOST}"
+      port: 5432
+      name: "microagents_prod"
+      role: "read"
+  
+  # Connection Pooling
+  pool:
+    pool_size: 20
+    max_overflow: 40
+    pool_timeout: 30
+    pool_recycle: 3600
+    pool_pre_ping: true
+    pool_reset_on_return: true
+  
+  # Performance
+  performance:
+    statement_timeout: 30000  # ms
+    idle_in_transaction_session_timeout: 10000
+    max_connections: 200
+    
+    # Query Optimization
+    random_page_cost: 1.1
+    effective_cache_size: "8GB"
+    work_mem: "64MB"
+    maintenance_work_mem: "1GB"
+  
+  # High Availability
+  high_availability:
+    multi_az: true
+    failover_priority: 1
+    promotion_tier: 1
+    backup_retention_period: 35  # days
+    
+    # Automatic Failover
+    auto_failover: true
+    failover_timeout: 60  # seconds
+    
+    # Monitoring
+    performance_insights: true
+    enhanced_monitoring: true
+    monitoring_interval: 60  # seconds
+  
+  # Encryption
+  encryption:
+    at_rest: true
+    in_transit: true
+    kms_key_id: "${DB_KMS_KEY_ID}"
+
+# ==================== CACHING - REDIS CLUSTER ====================
+cache:
+  # Redis Cluster
+  backend: "redis"
+  mode: "cluster"
+  
+  # Cluster Configuration
+  redis:
+    cluster:
+      nodes:
+        - host: "${REDIS_NODE_1_HOST}"
+          port: 6379
+        
+        - host: "${REDIS_NODE_2_HOST}"
+          port: 6379
+        
+        - host: "${REDIS_NODE_3_HOST}"
+          port: 6379
+      
+      # Cluster Settings
+      require_full_coverage: false
+      rebalance: true
+      slot_cache_timeout: 5000
+    
+    # Connection
+    password: "${REDIS_PASSWORD}"
+    ssl: true
+    ssl_cert_reqs: "required"
+    
+    # Pool Settings
+    max_connections: 50
+    socket_timeout: 5
+    socket_connect_timeout: 5
+    retry_on_timeout: true
+    health_check_interval: 30
+  
+  # Replication
+  replication:
+    enabled: true
+    read_from_replicas: true
+    route_reads: "slave"
+    
+    replicas:
+      - host: "${REDIS_REPLICA_1_HOST}"
+        port: 6379
+      
+      - host: "${REDIS_REPLICA_2_HOST}"
+        port: 6379
+  
+  # Cache Policies
+  policies:
+    default_timeout: 3600  # 1 hour
+    key_prefix: "prod:"
+    compression: true
+    serialization: "msgpack"
+    
+    # Eviction Policy
+    maxmemory_policy: "allkeys-lru"
+    maxmemory_samples: 5
+    lazyfree_lazy_eviction: true
+  
+  # Sentinel (Fallback)
+  sentinel:
+    enabled: true
+    service_name: "microagents-master"
+    sentinel_hosts:
+      - host: "${SENTINEL_1_HOST}"
+        port: 26379
+      
+      - host: "${SENTINEL_2_HOST}"
+        port: 26379
+      
+      - host: "${SENTINEL_3_HOST}"
+        port: 26379
+
+# ==================== MONITORING & OBSERVABILITY ====================
+monitoring:
+  enabled: true
+  provider: "prometheus"
+  
+  # Prometheus
+  prometheus:
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    metrics_path: "/metrics"
+    
+    # Service Discovery
+    discovery:
+      type: "kubernetes"
+      role: "pod"
+    
+    # Retention
+    retention_time: "30d"
+    retention_size: "50GB"
+  
+  # Grafana
+  grafana:
+    url: "https://grafana.microagents.io"
+    dashboard_uid: "microagents-production"
+    alerting_enabled: true
+    
+    # Dashboards
+    dashboards:
+      - name: "API Performance"
+        uid: "api-performance"
+      
+      - name: "Business Metrics"
+        uid: "business-metrics"
+      
+      - name: "Infrastructure"
+        uid: "infrastructure"
+  
+  # OpenTelemetry
+  opentelemetry:
+    enabled: true
+    endpoint: "${OTEL_COLLECTOR_ENDPOINT}"
+    
+    # Sampling
+    sampling_rate: 0.1  # 10%
+    max_samples_per_second: 100
+    
+    # Exporters
+    exporters:
+      - type: "otlp"
+        protocol: "grpc"
+      
+      - type: "jaeger"
+        endpoint: "jaeger-collector:14250"
+    
+    # Resource Attributes
+    resource:
+      service.name: "microagents-api"
+      service.namespace: "production"
+      service.version: "${APP_VERSION}"
+      deployment.environment: "production"
+  
+  # Application Metrics
+  metrics:
+    # Business Metrics
+    business:
+      - name: "active_customers"
+        type: "gauge"
+        help: "Number of active customers"
+      
+      - name: "monthly_recurring_revenue"
+        type: "gauge"
+        help: "Monthly recurring revenue in USD"
+      
+      - name: "customer_churn_rate"
+        type: "gauge"
+        help: "Customer churn rate percentage"
+    
+    # Technical Metrics
+    technical:
+      - name: "http_requests_total"
+        type: "counter"
+        help: "Total HTTP requests"
+      
+      - name: "http_request_duration_seconds"
+        type: "histogram"
+        help: "HTTP request duration in seconds"
+        buckets: [0.1, 0.25, 0.5, 1, 2, 5]
+      
+      - name: "database_query_duration_seconds"
+        type: "histogram"
+        help: "Database query duration in seconds"
+  
+  # Logging
+  logging:
+    level: "INFO"
+    format: "json"
+    
+    # Destinations
+    destinations:
+      - type: "elasticsearch"
+        url: "${ELASTICSEARCH_URL}"
+        index: "microagents-prod-${date}"
+        retention_days: 90
+      
+      - type: "s3"
+        bucket: "${LOG_S3_BUCKET}"
+        prefix: "logs/production/"
+        retention_days: 365
+      
+      - type: "datadog"
+        api_key: "${DATADOG_API_KEY}"
+        service: "microagents-api"
+    
+    # Structured Logging
+    structured_fields:
+      - "request_id"
+      - "user_id"
+      - "tenant_id"
+      - "duration_ms"
+      - "http_status"
+
+# ==================== PERFORMANCE & SCALING ====================
+performance:
+  optimize_for: "throughput"
+  
+  # Rate Limiting
+  rate_limits:
+    api:
+      enabled: true
+      limit: 1000
+      window: 60
+      burst_limit: 1500
+    
+    auth:
+      enabled: true
+      limit: 100
+      window: 60
+      burst_limit: 150
+    
+    webhooks:
+      enabled: true
+      limit: 500
+      window: 60
+      burst_limit: 750
+  
+  # Request Queuing
+  request_queue:
+    enabled: true
+    max_queue_size: 1000
+    queue_timeout: 30
+    
+    # Priority Queues
+    priorities:
+      high:
+        - "/api/v1/webhooks/*"
+        - "/api/v1/health"
+        - "/api/v1/admin/*"
+      
+      medium:
+        - "/api/v1/*"
+      
+      low:
+        - "/api/v1/reports/*"
+        - "/api/v1/analytics/*"
+  
+  # Timeouts
+  timeouts:
+    request: 30  # seconds
+    database: 10
+    redis: 5
+    external_api: 15
+  
+  # Compression
+  compression:
+    enabled: true
+    level: 6
+    min_size: 1024  # bytes
+    
+    # Compressible Content Types
+    content_types:
+      - "application/json"
+      - "application/javascript"
+      - "text/html"
+      - "text/css"
+      - "text/plain"
+  
+  # Caching Headers
+  cache_headers:
+    enabled: true
+    default_max_age: 300  # 5 minutes
+    
+    # Cache Control
+    cache_control:
+      static: "public, max-age=31536000, immutable"
+      api: "private, max-age=60"
+      dynamic: "no-cache"
+
+# ==================== SCALABILITY CONFIGURATION ====================
+scalability:
+  # Horizontal Pod Autoscaling (Kubernetes)
+  horizontal_pod_autoscaling:
+    enabled: true
+    
+    # API Service
+    api:
+      min_replicas: 3
+      max_replicas: 20
+      target_cpu_utilization: 70
+      target_memory_utilization: 80
+      
+      # Custom Metrics
+      custom_metrics:
+        - type: "pod"
+          metric:
+            name: "http_requests_per_second"
+          target:
+            type: "AverageValue"
+            averageValue: 100
+        
+        - type: "object"
+          metric:
+            name: "requests_per_second"
+            selector:
+              matchLabels:
+                app: "microagents-api"
+          target:
+            type: "Value"
+            value: 5000
+    
+    # Worker Service
+    workers:
+      min_replicas: 2
+      max_replicas: 10
+      target_cpu_utilization: 60
+      target_memory_utilization: 75
+      
+      # Queue-based scaling
+      queue_based_scaling:
+        enabled: true
+        queue_name: "task_queue"
+        target_queue_size: 100
+  
+  # Vertical Scaling
+  vertical_scaling:
+    enabled: false  # Require pod restart
+    
+    # Resource Limits
+    resource_limits:
+      api:
+        requests:
+          cpu: "500m"
+          memory: "1Gi"
+        limits:
+          cpu: "2000m"
+          memory: "4Gi"
+      
+      workers:
+        requests:
+          cpu: "250m"
+          memory: "512Mi"
+        limits:
+          cpu: "1000m"
+          memory: "2Gi"
+      
+      cron:
+        requests:
+          cpu: "100m"
+          memory: "256Mi"
+        limits:
+          cpu: "500m"
+          memory: "1Gi"
+  
+  # Database Scaling
+  database_scaling:
+    read_replicas:
+      min: 2
+      max: 5
+      scale_up_threshold: 70  # CPU %
+      scale_down_threshold: 30
+    
+    write_instance:
+      instance_class: "db.r6g.4xlarge"
+      storage_autoscaling: true
+      max_storage: 10000  # GB
+  
+  # Redis Scaling
+  redis_scaling:
+    sharding: true
+    shards: 3
+    replicas_per_shard: 2
+    
+    auto_scaling:
+      enabled: true
+      min_memory_gb: 50
+      max_memory_gb: 200
+      scale_up_threshold: 80  # Memory %
+      scale_down_threshold: 40
+
+# ==================== REDUNDANCY & HIGH AVAILABILITY ====================
+redundancy:
+  # Multi-AZ Deployment
+  multi_az:
+    enabled: true
+    zones: ["eu-west-1a", "eu-west-1b", "eu-west-1c"]
+    zone_rebalancing: true
+    
+    # Zone Distribution
+    distribution:
+      api: "spread"
+      database: "1 per zone"
+      redis: "1 per zone"
+  
+  # Load Balancer
+  load_balancer:
+    type: "application"
+    cross_zone_load_balancing: true
+    
+    # Health Checks
+    health_check:
+      protocol: "HTTP"
+      port: 8000
+      path: "/health"
+      interval: 30
+      timeout: 5
+      healthy_threshold: 2
+      unhealthy_threshold: 3
+    
+    # SSL/TLS
+    ssl:
+      certificate_arn: "${SSL_CERTIFICATE_ARN}"
+      security_policy: "ELBSecurityPolicy-TLS13-1-2-2021-06"
+      tls_versions: ["TLSv1.2", "TLSv1.3"]
+  
+  # Database Redundancy
+  database:
+    multi_az: true
+    automatic_failover: true
+    failover_priority: [1, 2, 3]
+    
+    # Backup Retention
+    backup_retention_period: 35  # days
+    backup_window: "03:00-04:00"
+    maintenance_window: "sun:04:00-sun:05:00"
+  
+  # Redis Redundancy
+  redis:
+    replication:
+      enabled: true
+      num_cache_clusters: 3
+      automatic_failover: true
+      multi_az: true
+    
+    # Backup
+    snapshot_retention_limit: 7  # days
+    snapshot_window: "05:00-06:00"
+
+# ==================== BACKUP & DISASTER RECOVERY ====================
+backup:
+  # Automated Backups
+  automated: true
+  schedule: "cron(0 2 * * ? *)"  # Daily at 2 AM
+  
+  # Database Backups
+  database:
+    enabled: true
+    retention_days: 35
+    storage_type: "gp3"
+    encrypted: true
+    kms_key_id: "${BACKUP_KMS_KEY_ID}"
+    
+    # Point-in-Time Recovery
+    pitr:
+      enabled: true
+      retention_hours: 168  # 7 days
+    
+    # Export to S3
+    export_to_s3:
+      enabled: true
+      bucket: "${BACKUP_S3_BUCKET}"
+      prefix: "database/"
+      retention_days: 90
+  
+  # Redis Backups
+  redis:
+    enabled: true
+    snapshot_retention_limit: 7
+    snapshot_window: "02:00-03:00"
+    
+    # Export
+    export:
+      enabled: true
+      bucket: "${BACKUP_S3_BUCKET}"
+      prefix: "redis/"
+  
+  # Configuration Backups
+  configuration:
+    enabled: true
+    sources:
+      - "config/"
+      - "kubernetes/"
+      - "terraform/"
+    
+    destination:
+      bucket: "${BACKUP_S3_BUCKET}"
+      prefix: "configuration/"
+      retention_days: 365
+  
+  # Disaster Recovery Procedures
+  disaster_recovery:
+    rto: "4 hours"  # Recovery Time Objective
+    rpo: "15 minutes"  # Recovery Point Objective
+    
+    # Procedures
+    procedures:
+      - name: "database_failure"
+        steps:
+          - "1. Failover to replica"
+          - "2. Restore from latest backup"
+          - "3. Update DNS records"
+          - "4. Notify stakeholders"
+        
+        automation:
+          failover_script: "scripts/dr/database_failover.sh"
+          validation_script: "scripts/dr/validate_recovery.sh"
+      
+      - name: "region_outage"
+        steps:
+          - "1. Activate DR region"
+          - "2. Restore from cross-region backups"
+          - "3. Update Route53 health checks"
+          - "4. Notify customers"
+        
+        automation:
+          activate_dr_script: "scripts/dr/activate_dr_region.sh"
+    
+    # Testing Schedule
+    testing:
+      quarterly: true
+      last_test: "2024-09-15"
+      next_test: "2024-12-15"
+
+# ==================== ALERTING & NOTIFICATIONS ====================
+alerting:
+  # PagerDuty Integration
+  pagerduty:
+    enabled: true
+    service_key: "${PAGERDUTY_SERVICE_KEY}"
+    escalation_policy: "MicroAgents Platform"
+    
+    # Alert Routing
+    routing:
+      critical:
+        - "database_down"
+        - "api_5xx_errors_high"
+        - "region_outage"
+      
+      high:
+        - "high_latency"
+        - "memory_usage_high"
+        - "disk_space_low"
+      
+      medium:
+        - "rate_limit_hits"
+        - "failed_logins"
+        - "backup_failed"
+    
+    # Alert Rules
+    rules:
+      # Infrastructure
+      - name: "database_connection_failed"
+        condition: "database_up == 0"
+        severity: "critical"
+        summary: "Database connection failed"
+        
+      - name: "high_api_latency"
+        condition: "http_request_duration_seconds{p95} > 2"
+        severity: "high"
+        summary: "High API latency detected"
+        
+      - name: "high_error_rate"
+        condition: "rate(http_requests_total{status=~\"5..\"}[5m]) / rate(http_requests_total[5m]) > 0.01"
+        severity: "critical"
+        summary: "High 5xx error rate"
+  
+  # Slack Integration
+  slack:
+    enabled: true
+    webhook_url: "${SLACK_WEBHOOK_URL}"
+    channel: "#alerts-production"
+    
+    # Notification Levels
+    notify_on:
+      critical: true
+      high: true
+      medium: true
+      low: false
+    
+    # Formatting
+    format: "detailed"
+    include_links: true
+    include_dashboard_links: true
+    
+    # Quiet Hours
+    quiet_hours:
+      enabled: true
+      start: "22:00"
+      end: "06:00"
+      timezone: "Europe/Paris"
+      suppress_medium_low: true
+  
+  # Email Alerts
+  email:
+    enabled: true
+    from: "alerts@microagents.io"
+    
+    # Recipients
+    recipients:
+      critical:
+        - "sre-team@microagents.io"
+        - "engineering-managers@microagents.io"
+      
+      high:
+        - "sre-team@microagents.io"
+      
+      medium:
+        - "engineering@microagents.io"
+    
+    # Templates
+    templates:
+      critical: "templates/alerts/critical.html"
+      high: "templates/alerts/high.html"
+      medium: "templates/alerts/medium.html"
+  
+  # Health Checks
+  health_checks:
+    # Liveness Probe
+    liveness:
+      path: "/health/live"
+      initial_delay_seconds: 30
+      period_seconds: 10
+      timeout_seconds: 5
+      failure_threshold: 3
+      success_threshold: 1
+    
+    # Readiness Probe
+    readiness:
+      path: "/health/ready"
+      initial_delay_seconds: 5
+      period_seconds: 5
+      timeout_seconds: 3
+      failure_threshold: 3
+      success_threshold: 1
+    
+    # Startup Probe
+    startup:
+      path: "/health/startup"
+      initial_delay_seconds: 0
+      period_seconds: 5
+      timeout_seconds: 3
+      failure_threshold: 30
+      success_threshold: 1
+
+# ==================== COMPLIANCE & AUDIT ====================
+compliance:
+  # Audit Logging
+  audit:
+    enabled: true
+    level: "detailed"
+    
+    # Events to Audit
+    events:
+      - "user_login"
+      - "user_logout"
+      - "password_change"
+      - "permission_change"
+      - "data_access"
+      - "configuration_change"
+      - "billing_change"
+      - "security_event"
+    
+    # Destinations
+    destinations:
+      - type: "s3"
+        bucket: "${AUDIT_S3_BUCKET}"
+        prefix: "audit/"
+        retention_days: 3650  # 10 years
+      
+      - type: "cloudwatch"
+        log_group: "/microagents/audit"
+        retention_days: 365
+      
+      - type: "splunk"
+        endpoint: "${SPLUNK_HEC_ENDPOINT}"
+        token: "${SPLUNK_HEC_TOKEN}"
+    
+    # Immutability
+    immutable: true
+    wORM_enabled: true
+  
+  # Data Retention
+  data_retention:
+    # Customer Data
+    customers:
+      active: "indefinite"
+      inactive: "7 years"
+      deleted: "30 days"
+    
+    # Billing Data
+    billing:
+      invoices: "7 years"
+      payments: "7 years"
+      tax_records: "10 years"
+    
+    # Logs
+    logs:
+      application: "90 days"
+      audit: "10 years"
+      security: "7 years"
+    
+    # Backups
+    backups:
+      daily: "35 days"
+      weekly: "90 days"
+      monthly: "7 years"
+      yearly: "indefinite"
+  
+  # Regulatory Compliance
+  regulatory:
+    gdpr:
+      enabled: true
+      dpo_email: "dpo@microagents.io"
+      data_processing_agreements: true
+      right_to_be_forgotten: true
+      data_portability: true
+      
+      # Data Protection
+      data_protection:
+        encryption_at_rest: true
+        encryption_in_transit: true
+        pseudonymization: true
+        
+    soc2:
+      enabled: true
+      type: "SOC2 Type II"
+      last_audit: "2024-06-30"
+      next_audit: "2025-06-30"
+      
+      # Controls
+      controls:
+        - "access_control"
+        - "change_management"
+        - "security_monitoring"
+        - "backup_and_recovery"
+        
+    hipaa:
+      enabled: true
+      covered_entities: false  # We're a business associate
+      baa_required: true
+      
+      # Protected Health Information
+      phi_handling:
+        encryption: true
+        access_logging: true
+        minimum_necessary: true
+  
+  # Security Compliance
+  security:
+    vulnerability_scanning:
+      enabled: true
+      schedule: "weekly"
+      tools: ["trivy", "snyk"]
+      
+    penetration_testing:
+      enabled: true
+      schedule: "quarterly"
+      last_test: "2024-09-01"
+      next_test: "2024-12-01"
+      
+    security_headers:
+      enabled: true
+      scan_frequency: "daily"
+      
+    # Certificates
+    certificates:
+      ssl:
+        provider: "aws_acm"
+        renewal: "automatic"
+        minimum_strength: "RSA_2048"
+
+# ==================== RESOURCE MANAGEMENT ====================
+resources:
+  # CPU Limits
+  cpu:
+    requests:
+      api: "500m"
+      workers: "250m"
+      cron: "100m"
+    
+    limits:
+      api: "2000m"
+      workers: "1000m"
+      cron: "500m"
+    
+    # CPU Management
+    management:
+      cpu_manager_policy: "static"
+      topology_manager_policy: "best-effort"
+  
+  # Memory Limits
+  memory:
+    requests:
+      api: "1Gi"
+      workers: "512Mi"
+      cron: "256Mi"
+    
+    limits:
+      api: "4Gi"
+      workers: "2Gi"
+      cron: "1Gi"
+    
+    # Memory Management
+    management:
+      hugepages: false
+      memory_swap: false
+  
+  # Storage
+  storage:
+    # Ephemeral Storage
+    ephemeral:
+      size_limit: "10Gi"
+      cleanup_policy: "OnPodTermination"
+    
+    # Persistent Storage
+    persistent:
+      api:
+        size: "20Gi"
+        storage_class: "gp3"
+        iops: 3000
+        throughput: 125
+        
+      database:
+        size: "500Gi"
+        storage_class: "io1"
+        iops: 10000
+        throughput: 500
+        
+      backups:
+        size: "1Ti"
+        storage_class: "standard"
+        lifecycle_policy: "GLACIER_IR"
+  
+  # Network
+  network:
+    # Bandwidth Limits
+    bandwidth:
+      ingress: "100M"
+      egress: "50M"
+    
+    # Connection Limits
+    connections:
+      max_connections: 10000
+      max_requests_per_connection: 100
+    
+    # Quality of Service
+    qos:
+      class: "Guaranteed"
+      priority: 0
+
+# ==================== DEPLOYMENT PROCEDURES ====================
+deployment:
+  # Blue-Green Deployment
+  strategy: "blue-green"
+  
+  blue_green:
+    active_service: "microagents-api-blue"
+    preview_service: "microagents-api-green"
+    
+    # Traffic Switching
+    traffic_switch:
+      step_interval: 30  # seconds
+      steps: [5, 25, 50, 75, 100]  # percentage
+    
+    # Validation
+    validation:
+      pre_deployment:
+        - "run_smoke_tests"
+        - "check_database_migrations"
+        - "validate_configuration"
+      
+      post_deployment:
+        - "run_integration_tests"
+        - "verify_metrics"
+        - "check_error_rates"
+      
+      rollback_thresholds:
+        error_rate: 5  # percentage
+        latency_increase: 200  # milliseconds
+        failed_health_checks: 3
+  
+  # Canary Deployment
+  canary:
+    enabled: true
+    steps:
+      - percentage: 5
+        duration: "5m"
+      
+      - percentage: 25
+        duration: "10m"
+      
+      - percentage: 50
+        duration: "15m"
+      
+      - percentage: 100
+        duration: "30m"
+    
+    # Metrics for Decision
+    metrics:
+      - "http_request_duration_seconds"
+      - "http_requests_total{status=~\"5..\"}"
+      - "database_query_duration_seconds"
+    
+    # Automatic Rollback
+    auto_rollback:
+      enabled: true
+      conditions:
+        - "error_rate > 5%"
+        - "latency_increase > 200ms"
+        - "health_check_failure > 30%"
+  
+  # Deployment Windows
+  windows:
+    business_hours:
+      enabled: false
+      start: "09:00"
+      end: "17:00"
+      timezone: "Europe/Paris"
+      days: ["mon", "tue", "wed", "thu", "fri"]
+    
+    maintenance_window:
+      enabled: true
+      start: "02:00"
+      end: "04:00"
+      timezone: "Europe/Paris"
+      day: "sunday"
+
+# ==================== ENVIRONMENT VARIABLES ====================
+env_vars:
+  # Required Variables (secrets)
+  required:
+    JWT_SECRET: "${JWT_SECRET}"
+    DB_PASSWORD: "${DB_PASSWORD}"
+    REDIS_PASSWORD: "${REDIS_PASSWORD}"
+    AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
+    AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
+  
+  # Optional Variables with defaults
+  optional:
+    ENV: "production"
+    LOG_LEVEL: "INFO"
+    METRICS_PORT: "9090"
+    HEALTH_CHECK_PORT: "8080"
+    GRACEFUL_SHUTDOWN_TIMEOUT: "30"
+  
+  # Feature Flags
+  features:
+    UNLEASH_API_URL: "https://unleash.prod.microagents.io/api"
+    UNLEASH_API_TOKEN: "${UNLEASH_API_TOKEN}"
+    FEATURE_FLAG_ENVIRONMENT: "production"
+  
+  # External Services
+  external:
+    STRIPE_SECRET_KEY: "${STRIPE_SECRET_KEY}"
+    STRIPE_WEBHOOK_SECRET: "${STRIPE_WEBHOOK_SECRET}"
+    SENDGRID_API_KEY: "${SENDGRID_API_KEY}"
+    DATADOG_API_KEY: "${DATADOG_API_KEY}"
+
+# ==================== SERVICE LEVEL OBJECTIVES ====================
+slo:
+  # Availability
+  availability:
+    target: 99.95  # percentage
+    measurement_period: "30d"
+    error_budget: 0.05  # percentage
+    
+    # Components
+    components:
+      api: 99.95
+      database: 99.99
+      redis: 99.9
+  
+  # Latency
+  latency:
+    api:
+      p95: "500ms"
+      p99: "1000ms"
+    
+    database:
+      p95: "100ms"
+      p99: "250ms"
+    
+    redis:
+      p95: "10ms"
+      p99: "50ms"
+  
+  # Error Rate
+  error_rate:
+    api:
+      4xx: "< 1%"
+      5xx: "< 0.1%"
+    
+    dependencies:
+      database: "< 0.01%"
+      redis: "< 0.1%"
+  
+  # Throughput
+  throughput:
+    api:
+      requests_per_second: 1000
+      concurrent_users: 5000
+    
+    workers:
+      jobs_per_second: 100
+  
+  # Monitoring
+  monitoring:
+    burn_rate_alerts:
+      - window: "1h"
+        threshold: 14.4  # 10% error budget burn in 1h
+        
+      - window: "6h"
+        threshold: 6  # 20% error budget burn in 6h

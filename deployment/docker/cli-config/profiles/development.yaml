@@ -1,0 +1,20 @@
+# Profil de configuration pour le développement
+
+extends: default
+
+# Surcharges pour le développement
+log:
+  level: DEBUG
+  format: console  # Format lisible pour les humains
+  file: ./microagents-dev.log
+
+performance:
+  parallel_agents: 2
+  timeout: 60  # Timeout plus long pour le debug
+
+update:
+  channel: beta  # Utiliser le canal beta pour les nouvelles fonctionnalités
+
+security:
+  allow_insecure: true  # Pour les tests avec self-signed certificates
+  mask_sensitive_data: false  # Pour voir les données en clair pendant le dev

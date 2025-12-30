@@ -1,0 +1,1288 @@
+# deployment/kubernetes/operators/agent-operator.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: microagents-system
+  labels:
+    control-plane: controller-manager
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/instance: agent-operator
+    app.kubernetes.io/part-of: microagents-platform
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: agent-operator-manager-role
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/instance: agent-operator
+rules:
+  # CRD permissions
+  - apiGroups: ["microagents.io"]
+    resources:
+      - "agentdefinitions"
+      - "agentdefinitions/status"
+      - "agentdefinitions/finalizers"
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  
+  # Core resources
+  - apiGroups: [""]
+    resources:
+      - "configmaps"
+      - "secrets"
+      - "services"
+      - "events"
+      - "pods"
+      - "pods/log"
+      - "pods/exec"
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  
+  - apiGroups: ["apps"]
+    resources:
+      - "deployments"
+      - "statefulsets"
+      - "daemonsets"
+      - "replicasets"
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  
+  # Autoscaling
+  - apiGroups: ["autoscaling"]
+    resources:
+      - "horizontalpodautoscalers"
+      - "verticalpodautoscalers"
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  
+  # Metrics
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["pods", "nodes"]
+    verbs: ["get", "list", "watch"]
+  
+  # Custom metrics for HPA
+  - apiGroups: ["custom.metrics.k8s.io"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+  
+  # External metrics for cost-based scaling
+  - apiGroups: ["external.metrics.k8s.io"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+  
+  # Monitoring integration
+  - apiGroups: ["monitoring.coreos.com"]
+    resources:
+      - "servicemonitors"
+      - "prometheusrules"
+      - "alertmanagers"
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  
+  # Network policies
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["networkpolicies"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  
+  # Pod disruption budgets
+  - apiGroups: ["policy"]
+    resources: ["poddisruptionbudgets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  
+  # Storage (for backup/restore)
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses", "persistentvolumeclaims"]
+    verbs: ["get", "list", "watch"]
+  
+  # Cost tracking (custom)
+  - apiGroups: ["cost.microagents.io"]
+    resources: ["costreports", "budgets"]
+    verbs: ["get", "list", "watch", "create"]
+  
+  # Compliance (custom)
+  - apiGroups: ["compliance.microagents.io"]
+    resources: ["compliancechecks", "auditreports"]
+    verbs: ["get", "list", "watch", "create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: agent-operator-manager-rolebinding
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/instance: agent-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: agent-operator-manager-role
+subjects:
+  - kind: ServiceAccount
+    name: controller-manager
+    namespace: microagents-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: controller-manager
+  namespace: microagents-system
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/instance: agent-operator
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-operator-controller-manager
+  namespace: microagents-system
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/instance: agent-operator
+    app.kubernetes.io/component: controller
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agent-operator
+      app.kubernetes.io/instance: agent-operator
+      app.kubernetes.io/component: controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: agent-operator
+        app.kubernetes.io/instance: agent-operator
+        app.kubernetes.io/component: controller
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: controller-manager
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: manager
+        image: registry.microagents.io/agent-operator:v1.0.0
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
+        args:
+          - "--health-probe-bind-address=:8081"
+          - "--metrics-bind-address=:8080"
+          - "--leader-elect=true"
+          - "--enable-cost-optimization=true"
+          - "--enable-compliance-checking=true"
+          - "--performance-metrics-interval=30s"
+          - "--auto-healing-threshold=3"
+          - "--max-concurrent-reconciles=10"
+        env:
+          # Operator configuration
+          - name: OPERATOR_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          # Cost optimization
+          - name: ENABLE_COST_TRACKING
+            value: "true"
+          - name: COST_BUDGET_LIMIT
+            value: "1000"  # USD per month
+          # Compliance
+          - name: ENABLE_COMPLIANCE_ENFORCEMENT
+            value: "true"
+          - name: COMPLIANCE_STANDARDS
+            value: "pci-dss,gdpr,soc2"
+          # Performance
+          - name: PERFORMANCE_MONITORING_INTERVAL
+            value: "30s"
+          - name: AUTO_SCALING_ENABLED
+            value: "true"
+          # Multi-tenancy
+          - name: MULTI_TENANT_MODE
+            value: "enabled"
+          - name: TENANT_ISOLATION_LEVEL
+            value: "namespace"
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "1Gi"
+        ports:
+        - containerPort: 8080
+          name: metrics
+          protocol: TCP
+        - containerPort: 8081
+          name: healthz
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        startupProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 30
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: operator-config
+          mountPath: /etc/operator/config
+          readOnly: true
+      volumes:
+      - name: tmp
+        emptyDir:
+          medium: Memory
+          sizeLimit: 1Gi
+      - name: operator-config
+        configMap:
+          name: agent-operator-config
+      # Node affinity for high availability
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/component: controller
+              topologyKey: kubernetes.io/hostname
+      # Tolerations for dedicated nodes
+      tolerations:
+      - key: "dedicated"
+        operator: "Equal"
+        value: "agent-operator"
+        effect: "NoSchedule"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agent-operator-config
+  namespace: microagents-system
+data:
+  default-agent-image: "registry.microagents.io/agent-base:v1.0.0"
+  cost-optimization-config: |
+    {
+      "rightsizing": {
+        "enabled": true,
+        "cpuThreshold": 20,
+        "memoryThreshold": 20,
+        "interval": "24h"
+      },
+      "spotOptimization": {
+        "enabled": true,
+        "strategy": "balanced"
+      },
+      "budgetAlerts": {
+        "enabled": true,
+        "thresholds": [50, 80, 100]
+      }
+    }
+  compliance-config: |
+    {
+      "pciDss": {
+        "enabled": true,
+        "requirements": ["encryption", "accessControl", "auditLogging"]
+      },
+      "gdpr": {
+        "enabled": true,
+        "dataProtection": true
+      },
+      "soc2": {
+        "enabled": true,
+        "type": "type-ii"
+      }
+    }
+  performance-config: |
+    {
+      "monitoring": {
+        "interval": "30s",
+        "metrics": ["cpu", "memory", "latency", "throughput"]
+      },
+      "optimization": {
+        "autoTuning": true,
+        "resourceOptimization": true
+      },
+      "scaling": {
+        "strategy": "mixed",
+        "metrics": ["cpu", "memory", "custom/agent-queue-depth"]
+      }
+    }
+  backup-config: |
+    {
+      "enabled": true,
+      "schedule": "0 3 * * *",
+      "retention": 30,
+      "includeVolumes": true,
+      "autoRestoreTest": true
+    }
+---
+# Custom Resource Definitions
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: agentdefinitions.microagents.io
+  labels:
+    app.kubernetes.io/name: agentdefinitions.microagents.io
+    app.kubernetes.io/instance: agent-operator
+    app.kubernetes.io/part-of: microagents-platform
+spec:
+  group: microagents.io
+  names:
+    kind: AgentDefinition
+    listKind: AgentDefinitionList
+    plural: agentdefinitions
+    singular: agentdefinition
+    shortNames:
+      - agd
+      - agents
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+        scale:
+          specReplicasPath: .spec.replicas
+          statusReplicasPath: .status.replicas
+          labelSelectorPath: .status.selector
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+            spec:
+              type: object
+              required: [type, version]
+              properties:
+                # Basic agent configuration
+                type:
+                  type: string
+                  enum: [monitoring, security, cost, performance, infrastructure]
+                  description: "Type of agent (monitoring, security, cost, etc.)"
+                version:
+                  type: string
+                  pattern: '^v[0-9]+\.[0-9]+\.[0-9]+'
+                  description: "Semantic version of the agent"
+                
+                # Deployment configuration
+                replicas:
+                  type: integer
+                  minimum: 1
+                  maximum: 1000
+                  default: 1
+                  description: "Number of agent replicas"
+                image:
+                  type: string
+                  default: "registry.microagents.io/agent-base:v1.0.0"
+                  description: "Container image for the agent"
+                
+                # Resource configuration
+                resources:
+                  type: object
+                  properties:
+                    requests:
+                      type: object
+                      properties:
+                        cpu:
+                          type: string
+                          pattern: '^[0-9]+m$'
+                          default: "100m"
+                        memory:
+                          type: string
+                          pattern: '^[0-9]+Mi$'
+                          default: "128Mi"
+                    limits:
+                      type: object
+                      properties:
+                        cpu:
+                          type: string
+                          pattern: '^[0-9]+m$'
+                          default: "500m"
+                        memory:
+                          type: string
+                          pattern: '^[0-9]+Mi$'
+                          default: "512Mi"
+                    optimization:
+                      type: object
+                      properties:
+                        enabled:
+                          type: boolean
+                          default: true
+                        mode:
+                          type: string
+                          enum: [conservative, balanced, aggressive]
+                          default: "balanced"
+                
+                # Auto-scaling configuration
+                autoscaling:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                      default: true
+                    minReplicas:
+                      type: integer
+                      minimum: 1
+                      default: 1
+                    maxReplicas:
+                      type: integer
+                      maximum: 1000
+                      default: 10
+                    metrics:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          type:
+                            type: string
+                            enum: [Resource, Pods, Object, External, Cost]
+                          resource:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                                enum: [cpu, memory]
+                              target:
+                                type: object
+                                properties:
+                                  type:
+                                    type: string
+                                    enum: [Utilization, AverageValue]
+                                  averageUtilization:
+                                    type: integer
+                                    minimum: 1
+                                    maximum: 100
+                                  averageValue:
+                                    type: string
+                          cost:
+                            type: object
+                            properties:
+                              provider:
+                                type: string
+                                enum: [aws, gcp, azure]
+                              metric:
+                                type: string
+                                enum: [EstimatedCharges, BudgetUtilization]
+                              threshold:
+                                type: number
+                                minimum: 0
+                                maximum: 100
+                    behavior:
+                      type: object
+                      properties:
+                        scaleDown:
+                          type: object
+                          properties:
+                            stabilizationWindowSeconds:
+                              type: integer
+                              default: 300
+                            policies:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  type:
+                                    type: string
+                                    enum: [Pods, Percent]
+                                  value:
+                                    type: integer
+                                  periodSeconds:
+                                    type: integer
+                
+                # Health checking
+                health:
+                  type: object
+                  properties:
+                    livenessProbe:
+                      type: object
+                      properties:
+                        httpGet:
+                          type: object
+                          properties:
+                            path:
+                              type: string
+                              default: "/health/live"
+                            port:
+                              type: integer
+                              default: 8080
+                        initialDelaySeconds:
+                          type: integer
+                          default: 30
+                        periodSeconds:
+                          type: integer
+                          default: 10
+                        timeoutSeconds:
+                          type: integer
+                          default: 5
+                    readinessProbe:
+                      type: object
+                      properties:
+                        httpGet:
+                          type: object
+                          properties:
+                            path:
+                              type: string
+                              default: "/health/ready"
+                            port:
+                              type: integer
+                              default: 8080
+                        initialDelaySeconds:
+                          type: integer
+                          default: 10
+                        periodSeconds:
+                          type: integer
+                          default: 5
+                    startupProbe:
+                      type: object
+                      properties:
+                        httpGet:
+                          type: object
+                          properties:
+                            path:
+                              type: string
+                              default: "/health/startup"
+                            port:
+                              type: integer
+                              default: 8080
+                        initialDelaySeconds:
+                          type: integer
+                          default: 0
+                        periodSeconds:
+                          type: integer
+                          default: 10
+                        failureThreshold:
+                          type: integer
+                          default: 30
+                
+                # Version management
+                versionManagement:
+                  type: object
+                  properties:
+                    updateStrategy:
+                      type: string
+                      enum: [RollingUpdate, Recreate, Canary, BlueGreen]
+                      default: "RollingUpdate"
+                    rollingUpdate:
+                      type: object
+                      properties:
+                        maxSurge:
+                          type: string
+                          pattern: '^[0-9]+%?$'
+                          default: "25%"
+                        maxUnavailable:
+                          type: string
+                          pattern: '^[0-9]+%?$'
+                          default: "0"
+                    autoUpdate:
+                      type: object
+                      properties:
+                        enabled:
+                          type: boolean
+                          default: false
+                        channel:
+                          type: string
+                          enum: [stable, beta, alpha]
+                          default: "stable"
+                        schedule:
+                          type: string
+                          pattern: '^@(annually|yearly|monthly|weekly|daily|hourly)|((\*|[0-9]+)(\/[0-9]+)?(\s+(\*|[0-9]+)(\/[0-9]+)?){4})$'
+                
+                # Cost tracking
+                costTracking:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                      default: true
+                    budget:
+                      type: object
+                      properties:
+                        monthly:
+                          type: number
+                          minimum: 0
+                        alerts:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              percentage:
+                                type: integer
+                                minimum: 0
+                                maximum: 100
+                              severity:
+                                type: string
+                                enum: [info, warning, critical]
+                    optimization:
+                      type: object
+                      properties:
+                        rightsizing:
+                          type: boolean
+                          default: true
+                        spotInstances:
+                          type: boolean
+                          default: false
+                
+                # Compliance enforcement
+                compliance:
+                  type: object
+                  properties:
+                    standards:
+                      type: array
+                      items:
+                        type: string
+                        enum: [pci-dss, gdpr, soc2, hipaa, iso27001]
+                    enforcement:
+                      type: object
+                      properties:
+                        enabled:
+                          type: boolean
+                          default: true
+                        mode:
+                          type: string
+                          enum: [audit, enforce, report]
+                          default: "enforce"
+                    securityContext:
+                      type: object
+                      properties:
+                        runAsNonRoot:
+                          type: boolean
+                          default: true
+                        readOnlyRootFilesystem:
+                          type: boolean
+                          default: true
+                        seccompProfile:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                              enum: [RuntimeDefault, Localhost]
+                
+                # Performance monitoring
+                performance:
+                  type: object
+                  properties:
+                    monitoring:
+                      type: object
+                      properties:
+                        enabled:
+                          type: boolean
+                          default: true
+                        metrics:
+                          type: array
+                          items:
+                            type: string
+                            enum: [cpu, memory, latency, throughput, errorRate]
+                        interval:
+                          type: string
+                          default: "30s"
+                    optimization:
+                      type: object
+                      properties:
+                        autoTuning:
+                          type: boolean
+                          default: true
+                        thresholds:
+                          type: object
+                          properties:
+                            cpuUtilization:
+                              type: integer
+                              default: 70
+                            memoryUtilization:
+                              type: integer
+                              default: 80
+                            latencyP95:
+                              type: string
+                              default: "1s"
+                
+                # Multi-tenancy support
+                multiTenancy:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                      default: false
+                    tenantId:
+                      type: string
+                    isolation:
+                      type: string
+                      enum: [namespace, network, full]
+                      default: "namespace"
+                    resourceQuotas:
+                      type: object
+                      properties:
+                        cpu:
+                          type: string
+                        memory:
+                          type: string
+                        pods:
+                          type: integer
+                
+                # Observability integration
+                observability:
+                  type: object
+                  properties:
+                    metrics:
+                      type: object
+                      properties:
+                        enabled:
+                          type: boolean
+                          default: true
+                        port:
+                          type: integer
+                          default: 9090
+                        path:
+                          type: string
+                          default: "/metrics"
+                    logging:
+                      type: object
+                      properties:
+                        level:
+                          type: string
+                          enum: [debug, info, warn, error]
+                          default: "info"
+                        format:
+                          type: string
+                          enum: [json, text]
+                          default: "json"
+                    tracing:
+                      type: object
+                      properties:
+                        enabled:
+                          type: boolean
+                          default: true
+                        samplingRate:
+                          type: number
+                          minimum: 0
+                          maximum: 1
+                          default: 0.1
+                
+                # Backup/restore
+                backup:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                      default: true
+                    schedule:
+                      type: string
+                      pattern: '^((\*|[0-9]+)(\/[0-9]+)?(\s+(\*|[0-9]+)(\/[0-9]+)?){4})$'
+                      default: "0 3 * * *"
+                    retention:
+                      type: integer
+                      minimum: 1
+                      maximum: 365
+                      default: 30
+                    includeVolumes:
+                      type: boolean
+                      default: true
+                
+                # Security policies
+                security:
+                  type: object
+                  properties:
+                    networkPolicy:
+                      type: object
+                      properties:
+                        enabled:
+                          type: boolean
+                          default: true
+                        allowEgress:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              to:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    namespaceSelector:
+                                      type: object
+                                    podSelector:
+                                      type: object
+                              ports:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    port:
+                                      type: integer
+                                    protocol:
+                                      type: string
+                                      enum: [TCP, UDP]
+                    podSecurityContext:
+                      type: object
+                      properties:
+                        runAsUser:
+                          type: integer
+                        runAsGroup:
+                          type: integer
+                        fsGroup:
+                          type: integer
+                    containerSecurityContext:
+                      type: object
+                      properties:
+                        allowPrivilegeEscalation:
+                          type: boolean
+                          default: false
+                        capabilities:
+                          type: object
+                          properties:
+                            drop:
+                              type: array
+                              items:
+                                type: string
+                                enum: [ALL, NET_RAW, SYS_ADMIN]
+                
+                # Self-healing capabilities
+                selfHealing:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                      default: true
+                    maxCrashCount:
+                      type: integer
+                      default: 3
+                    restartPolicy:
+                      type: string
+                      enum: [Always, OnFailure, Never]
+                      default: "Always"
+                    healthCheckThreshold:
+                      type: integer
+                      default: 3
+              # End of spec
+              
+            status:
+              type: object
+              properties:
+                conditions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                      status:
+                        type: string
+                        enum: [True, False, Unknown]
+                      lastTransitionTime:
+                        type: string
+                        format: date-time
+                      reason:
+                        type: string
+                      message:
+                        type: string
+                replicas:
+                  type: integer
+                readyReplicas:
+                  type: integer
+                updatedReplicas:
+                  type: integer
+                availableReplicas:
+                  type: integer
+                unavailableReplicas:
+                  type: integer
+                currentVersion:
+                  type: string
+                targetVersion:
+                  type: string
+                lastUpdateTime:
+                  type: string
+                  format: date-time
+                costMetrics:
+                  type: object
+                  properties:
+                    estimatedMonthlyCost:
+                      type: number
+                    currentSpend:
+                      type: number
+                    budgetUtilization:
+                      type: number
+                performanceMetrics:
+                  type: object
+                  properties:
+                    cpuUtilization:
+                      type: number
+                    memoryUtilization:
+                      type: number
+                    averageLatency:
+                      type: number
+                    throughput:
+                      type: number
+                complianceStatus:
+                  type: object
+                  properties:
+                    pciDss:
+                      type: boolean
+                    gdpr:
+                      type: boolean
+                    soc2:
+                      type: boolean
+                    lastCheck:
+                      type: string
+                      format: date-time
+                healthStatus:
+                  type: string
+                  enum: [Healthy, Degraded, Unhealthy, Unknown]
+                backupStatus:
+                  type: object
+                  properties:
+                    lastBackup:
+                      type: string
+                      format: date-time
+                    lastRestore:
+                      type: string
+                      format: date-time
+                    backupCount:
+                      type: integer
+                    restoreCount:
+                      type: integer
+      # End of CRD schema
+      
+      additionalPrinterColumns:
+        - name: Type
+          type: string
+          jsonPath: .spec.type
+        - name: Version
+          type: string
+          jsonPath: .spec.version
+        - name: Replicas
+          type: integer
+          jsonPath: .status.replicas
+        - name: Ready
+          type: integer
+          jsonPath: .status.readyReplicas
+        - name: Status
+          type: string
+          jsonPath: .status.healthStatus
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+        - name: Cost
+          type: string
+          jsonPath: .status.costMetrics.estimatedMonthlyCost
+          priority: 1
+        - name: Compliance
+          type: string
+          jsonPath: .status.complianceStatus.pciDss
+          priority: 1
+      # Webhook configuration
+      webhook:
+        conversion:
+          strategy: None
+        validation:
+          failurePolicy: Fail
+        admissionReviewVersions: ["v1", "v1beta1"]
+---
+# Service for the operator
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-operator-controller-manager-metrics-service
+  namespace: microagents-system
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/instance: agent-operator
+    app.kubernetes.io/component: controller
+spec:
+  ports:
+    - name: https
+      port: 8443
+      targetPort: https
+    - name: metrics
+      port: 8080
+      targetPort: metrics
+    - name: healthz
+      port: 8081
+      targetPort: healthz
+  selector:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/instance: agent-operator
+    app.kubernetes.io/component: controller
+---
+# ServiceMonitor for Prometheus
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: agent-operator-monitor
+  namespace: microagents-system
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/instance: agent-operator
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agent-operator
+      app.kubernetes.io/instance: agent-operator
+      app.kubernetes.io/component: controller
+  endpoints:
+    - port: metrics
+      interval: 30s
+      scrapeTimeout: 25s
+      path: /metrics
+    - port: healthz
+      interval: 30s
+      scrapeTimeout: 25s
+      path: /healthz
+  namespaceSelector:
+    matchNames:
+      - microagents-system
+---
+# Prometheus rules for agent operator
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: agent-operator-rules
+  namespace: microagents-system
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/instance: agent-operator
+spec:
+  groups:
+    - name: agent-operator.rules
+      rules:
+        - alert: AgentOperatorDown
+          expr: up{job="agent-operator-controller-manager-metrics-service"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            team: platform
+          annotations:
+            summary: "Agent Operator is down"
+            description: "Agent Operator pod has been down for more than 5 minutes"
+            
+        - alert: HighOperatorCPU
+          expr: rate(process_cpu_seconds_total{job="agent-operator-controller-manager-metrics-service"}[5m]) > 0.8
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High CPU usage in Agent Operator"
+            
+        - alert: ManyAgentFailures
+          expr: sum(agent_failures_total) by (agent_type) > 10
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Many agent failures detected"
+            
+        - alert: CostBudgetExceeded
+          expr: agent_cost_monthly_estimate > agent_cost_budget_limit
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Agent cost budget exceeded"
+---
+# PodDisruptionBudget for operator
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: agent-operator-pdb
+  namespace: microagents-system
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/instance: agent-operator
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agent-operator
+      app.kubernetes.io/instance: agent-operator
+      app.kubernetes.io/component: controller
+---
+# NetworkPolicy for operator
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: agent-operator-network-policy
+  namespace: microagents-system
+  labels:
+    app.kubernetes.io/name: agent-operator
+    app.kubernetes.io/instance: agent-operator
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: controller
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: microagents-system
+      ports:
+        - port: 8080
+          protocol: TCP
+        - port: 8081
+          protocol: TCP
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - port: 443
+          protocol: TCP
+---
+# Example AgentDefinition
+apiVersion: microagents.io/v1alpha1
+kind: AgentDefinition
+metadata:
+  name: cost-optimizer-agent
+  namespace: microagents-prod
+  labels:
+    agent-type: cost
+    version: v1.0.0
+spec:
+  type: cost
+  version: v1.0.0
+  replicas: 3
+  image: registry.microagents.io/cost-optimizer:v1.2.0
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    optimization:
+      enabled: true
+      mode: balanced
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    metrics:
+      - type: Resource
+        resource:
+          name: cpu
+          target:
+            type: Utilization
+            averageUtilization: 70
+      - type: Cost
+        cost:
+          provider: aws
+          metric: BudgetUtilization
+          threshold: 80
+    behavior:
+      scaleDown:
+        stabilizationWindowSeconds: 300
+        policies:
+          - type: Percent
+            value: 10
+            periodSeconds: 60
+  health:
+    livenessProbe:
+      httpGet:
+        path: /health/live
+        port: 8080
+      initialDelaySeconds: 30
+      periodSeconds: 10
+    readinessProbe:
+      httpGet:
+        path: /health/ready
+        port: 8080
+      initialDelaySeconds: 10
+      periodSeconds: 5
+  versionManagement:
+    updateStrategy: RollingUpdate
+    rollingUpdate:
+      maxSurge: "25%"
+      maxUnavailable: "0"
+  costTracking:
+    enabled: true
+    budget:
+      monthly: 500
+      alerts:
+        - percentage: 50
+          severity: warning
+        - percentage: 80
+          severity: critical
+  compliance:
+    standards:
+      - pci-dss
+      - gdpr
+    enforcement:
+      enabled: true
+      mode: enforce
+    securityContext:
+      runAsNonRoot: true
+      readOnlyRootFilesystem: true
+      seccompProfile:
+        type: RuntimeDefault
+  performance:
+    monitoring:
+      enabled: true
+      metrics:
+        - cpu
+        - memory
+        - latency
+      interval: 30s
+    optimization:
+      autoTuning: true
+      thresholds:
+        cpuUtilization: 70
+        memoryUtilization: 80
+        latencyP95: "500ms"
+  backup:
+    enabled: true
+    schedule: "0 3 * * *"
+    retention: 30
+    includeVolumes: true
+  security:
+    networkPolicy:
+      enabled: true
+      allowEgress:
+        - to:
+            - namespaceSelector:
+                matchLabels:
+                  name: microagents-data
+          ports:
+            - port: 5432
+              protocol: TCP
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+  selfHealing:
+    enabled: true
+    maxCrashCount: 3
+    restartPolicy: Always

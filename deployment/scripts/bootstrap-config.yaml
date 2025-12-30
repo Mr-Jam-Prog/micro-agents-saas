@@ -1,0 +1,69 @@
+# MicroAgents Platform Bootstrap Configuration
+
+environment: production
+cloud_provider: aws
+namespace: microagents
+
+kubernetes:
+  version: 1.27
+  node_count: 3
+  node_type: Standard_D4s_v3
+  autopilot: false
+
+storage:
+  class: standard
+  fast_class: fast
+  sizes:
+    postgres: 100Gi
+    redis: 50Gi
+    backup: 200Gi
+
+monitoring:
+  enabled: true
+  retention_days: 30
+  prometheus:
+    replica_count: 2
+    storage: 50Gi
+  grafana:
+    storage: 10Gi
+    admin_password: ""
+
+backup:
+  enabled: true
+  provider: velero
+  schedule: "0 3 * * *"
+  retention_days: 30
+  storage:
+    bucket: ""
+
+security:
+  enable_network_policies: true
+  enable_pod_security: true
+  enable_rbac: true
+  enable_audit_logging: true
+
+performance:
+  enable_hpa: true
+  enable_vpa: false
+  enable_node_autoscaler: true
+  resource_limits:
+    default_cpu: 500m
+    default_memory: 512Mi
+    default_request_cpu: 100m
+    default_request_memory: 128Mi
+
+network:
+  ingress_class: nginx
+  enable_external_dns: true
+  enable_cert_manager: true
+  domain: "microagents.io"
+
+cost_optimization:
+  enable_spot_instances: true
+  enable_storage_tiering: true
+  enable_rightsizing: true
+
+compliance:
+  pci_dss: true
+  gdpr: true
+  soc2: true

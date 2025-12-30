@@ -1,0 +1,726 @@
+# Configuration Environnement de Développement - MicroAgents Platform
+# Fichier: config/environments/dev.yaml
+# Usage: Chargé automatiquement lorsque ENV=development
+
+version: 1.0
+environment: development
+last_updated: 2024-12-01T09:00:00Z
+
+# ==================== IDENTIFICATION ====================
+app:
+  name: "MicroAgents Platform - Dev"
+  version: "0.1.0-dev"
+  instance_id: "dev-${HOSTNAME:-local}"
+  debug: true
+  testing: true
+  
+  # URLs de développement
+  base_url: "http://localhost:8000"
+  api_url: "http://localhost:8000/api/v1"
+  web_url: "http://localhost:3000"
+  
+  # Hot reload configuration
+  hot_reload:
+    enabled: true
+    watch_dirs:
+      - "src/**/*.py"
+      - "config/**/*.yaml"
+      - "templates/**/*"
+    poll_interval: 1.0  # secondes
+    ignore_patterns:
+      - "**/__pycache__/**"
+      - "**/*.pyc"
+      - "**/.git/**"
+
+# ==================== DATABASE ====================
+database:
+  # SQLite pour le développement
+  engine: "sqlite"
+  database_url: "sqlite:///./microagents_dev.db"
+  
+  # Migrations automatiques
+  migrations:
+    auto_migrate: true
+    alembic_ini_path: "alembic.ini"
+    revision_on_start: true
+  
+  # Connexion pool
+  pool_size: 5
+  max_overflow: 10
+  pool_recycle: 3600
+  
+  # Performance dev
+  echo: true  # Log toutes les requêtes SQL
+  echo_pool: false
+  
+  # Isolation level
+  isolation_level: "READ COMMITTED"
+  
+  # WAL mode pour SQLite
+  pragmas:
+    - "journal_mode=WAL"
+    - "foreign_keys=ON"
+    - "synchronous=NORMAL"
+    - "cache_size=10000"
+
+# ==================== CACHING ====================
+cache:
+  backend: "memory"  # Pas de Redis nécessaire
+  default_timeout: 300  # secondes
+  key_prefix: "dev:"
+  
+  # Configuration mémoire
+  memory:
+    max_entries: 1000
+    threshold: 0.75
+  
+  # Simulation Redis pour les tests
+  mock_redis:
+    enabled: true
+    host: "localhost"
+    port: 63790  # Port non standard pour éviter les conflits
+    db: 0
+    
+  # Cache des templates
+  template_cache: false  # Désactivé pour le hot reload
+
+# ==================== LOGGING & MONITORING ====================
+logging:
+  level: "DEBUG"
+  format: "detailed"  # detailed, json, simple
+  
+  # Sorties
+  handlers:
+    console:
+      enabled: true
+      level: "DEBUG"
+      format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+      date_format: "%H:%M:%S"
+    
+    file:
+      enabled: true
+      path: "logs/dev.log"
+      max_size_mb: 10
+      backup_count: 5
+    
+    # Pour le développement intégré
+    vs_code:
+      enabled: true
+      use_colors: true
+      show_thread: false
+  
+  # Loggers spécifiques
+  loggers:
+    sqlalchemy.engine:
+      level: "INFO"
+    uvicorn:
+      level: "INFO"
+    httpx:
+      level: "WARNING"
+    asyncio:
+      level: "WARNING"
+  
+  # Stack traces
+  show_traceback: true
+  traceback_depth: 10
+  local_vars_in_traceback: true
+
+monitoring:
+  # Monitoring simplifié pour dev
+  enabled: true
+  metrics_backend: "console"
+  
+  # Métriques exposées
+  expose_metrics: true
+  metrics_endpoint: "/dev/metrics"
+  
+  # Profiling
+  profiling:
+    enabled: true
+    endpoint: "/dev/profile"
+    sampling_interval: 0.01  # secondes
+    
+  # Health checks
+  health_checks:
+    enabled: true
+    endpoint: "/dev/health"
+    include_details: true
+
+# ==================== SECURITY (RELAXED) ====================
+security:
+  # Mode développement relaxé
+  mode: "development"
+  
+  # Authentication
+  auth:
+    enabled: false  # Pas d'authentification requise
+    jwt_secret: "dev-only-insecure-secret-change-in-production"
+    jwt_algorithm: "HS256"
+    jwt_expiry_minutes: 1440  # 24 heures
+    
+    # Bypass pour le développement
+    bypass_tokens:
+      - "dev-token-allow-all"
+      - "test-user-admin"
+    
+    # Utilisateurs de développement
+    default_users:
+      admin:
+        email: "admin@dev.microagents.io"
+        password: "admin123"
+        roles: ["admin", "developer"]
+      
+      developer:
+        email: "dev@microagents.io"
+        password: "dev123"
+        roles: ["developer"]
+      
+      user:
+        email: "user@example.com"
+        password: "user123"
+        roles: ["user"]
+  
+  # CORS - très permissif en dev
+  cors:
+    enabled: true
+    allow_origins:
+      - "http://localhost:3000"
+      - "http://localhost:8080"
+      - "http://127.0.0.1:3000"
+      - "http://localhost:8000"
+    allow_credentials: true
+    allow_methods: ["*"]
+    allow_headers: ["*"]
+    expose_headers: ["*"]
+    max_age: 600
+  
+  # Rate limiting désactivé
+  rate_limiting:
+    enabled: false
+    default_limit: 1000
+    window_seconds: 60
+    
+  # CSRF désactivé
+  csrf:
+    enabled: false
+    
+  # Headers de sécurité réduits
+  headers:
+    hsts: false
+    content_security_policy: false
+    x_content_type_options: false
+
+# ==================== PERFORMANCE ====================
+performance:
+  # Optimisations pour le développement
+  optimize_for: "development"
+  
+  # Pas de rate limiting
+  rate_limits:
+    api: disabled
+    auth: disabled
+    webhooks: disabled
+  
+  # Timeouts
+  timeouts:
+    request: 300  # secondes
+    database: 30
+    external_api: 60
+  
+  # Compression
+  compression:
+    enabled: false  # Pour faciliter le debugging
+  
+  # Pagination
+  pagination:
+    default_page_size: 20
+    max_page_size: 1000  # Grand pour les tests
+
+# ==================== FEATURE FLAGS ====================
+features:
+  # Toutes les features activées en développement
+  provider: "local"  # Pas de connexion à Unleash nécessaire
+  default_state: true  # Toutes les features ON
+  
+  # Overrides spécifiques
+  overrides:
+    # Features toujours activées en dev
+    agent_ml_predictions: true
+    auto_remediation_engine: true
+    real_time_cfo_dashboard: true
+    multi_cloud_support: true
+    advanced_roi_calculator: true
+    
+    # Features expérimentales
+    experimental_features: true
+    debug_endpoints: true
+    admin_panel: true
+    
+    # Désactiver les features qui nécessitent des services externes
+    production_monitoring: false
+    external_analytics: false
+  
+  # Mode développement spécial
+  development_mode:
+    skip_license_checks: true
+    bypass_payment_checks: true
+    allow_unlimited_agents: true
+    enable_test_routes: true
+
+# ==================== MOCK SERVICES ====================
+mock_services:
+  enabled: true
+  
+  # Stripe Mock
+  stripe:
+    enabled: true
+    endpoint: "http://localhost:4242/mock/stripe"
+    api_key: "sk_test_mock_123456"
+    webhook_secret: "whsec_mock_123456"
+    
+    # Comportements simulés
+    behaviors:
+      payments_always_succeed: true
+      no_card_declines: true
+      instant_webhooks: true
+  
+  # AWS Mock
+  aws:
+    enabled: true
+    services:
+      s3:
+        endpoint: "http://localhost:4566"  # LocalStack
+        region: "us-east-1"
+        buckets:
+          - "dev-microagents-bucket"
+      
+      cloudwatch:
+        endpoint: "http://localhost:4566"
+        mock_metrics: true
+      
+      # Autres services AWS mockés
+      mock_services: ["ec2", "rds", "lambda"]
+  
+  # Email Mock
+  email:
+    enabled: true
+    provider: "console"  # Affiche les emails dans la console
+    smtp_host: "localhost"
+    smtp_port: 1025  # MailHog par défaut
+    default_from: "dev@microagents.io"
+    
+    # Capture tous les emails
+    capture_all: true
+    web_interface: "http://localhost:8025"
+  
+  # Webhook Mock
+  webhooks:
+    enabled: true
+    endpoint: "http://localhost:8080/mock/webhooks"
+    auto_respond: true
+    response_delay_ms: 100
+    
+    # Templates de réponses
+    response_templates:
+      success: '{"status": "success", "received": true}'
+      error: '{"status": "error", "message": "mock error"}'
+
+# ==================== SAMPLE DATA ====================
+sample_data:
+  # Génération automatique de données de test
+  auto_generate: true
+  on_startup: true
+  
+  # Quantités
+  quantities:
+    customers: 10
+    subscriptions: 25
+    agents: 50
+    invoices: 100
+    usage_records: 1000
+  
+  # Données de démo
+  demo_scenarios:
+    enabled: true
+    scenarios:
+      - name: "startup_scaling"
+        description: "Startup en croissance rapide"
+        agents: 150
+        monthly_spend: 5000
+      
+      - name: "enterprise_migration"
+        description: "Grande entreprise migrant vers le cloud"
+        agents: 500
+        monthly_spend: 50000
+      
+      - name: "cost_optimization"
+        description: "Client avec opportunités d'optimisation"
+        agents: 75
+        monthly_spend: 15000
+        optimization_potential: 35
+  
+  # Seed data
+  seeds:
+    products:
+      - name: "Starter Plan"
+        price_monthly: 49
+        max_agents: 50
+        
+      - name: "Professional Plan"
+        price_monthly: 299
+        max_agents: 500
+        
+      - name: "Enterprise Plan"
+        price_monthly: 999
+        max_agents: 1400
+    
+    features:
+      - name: "Cost Optimization"
+        description: "Optimisation automatique des coûts cloud"
+        
+      - name: "Security Monitoring"
+        description: "Monitoring de sécurité en temps réel"
+        
+      - name: "Incident Response"
+        description: "Détection et réponse aux incidents"
+  
+  # Faker configuration
+  faker:
+    locale: "fr_FR"
+    seed: 42  # Pour la reproductibilité
+    providers:
+      - "faker.providers.person"
+      - "faker.providers.company"
+      - "faker.providers.address"
+      - "faker.providers.internet"
+
+# ==================== DEVELOPER TOOLS ====================
+dev_tools:
+  # Intégration avec les outils de développement
+  enabled: true
+  
+  # VS Code
+  vs_code:
+    debug_configs:
+      - name: "MicroAgents API"
+        type: "python"
+        request: "launch"
+        module: "uvicorn"
+        args: ["src.api.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
+        env: {"ENV": "development"}
+        justMyCode: false
+      
+      - name: "MicroAgents CLI"
+        type: "python"
+        request: "launch"
+        program: "src/cli/main.py"
+        args: ["--dev"]
+    
+    # Extensions recommandées
+    recommended_extensions:
+      - "ms-python.python"
+      - "ms-python.vscode-pylance"
+      - "ms-azuretools.vscode-docker"
+      - "redhat.vscode-yaml"
+      - "bierner.markdown-preview-github-styles"
+  
+  # IntelliJ/PyCharm
+  intellij:
+    run_configurations:
+      - name: "Development Server"
+        script_path: "src/api/main.py"
+        parameters: "--reload"
+        environment_variables:
+          ENV: "development"
+      
+      - name: "Run Tests"
+        script_path: "pytest"
+        parameters: "tests/ -xvs"
+    
+    # Live templates
+    live_templates:
+      - name: "new_endpoint"
+        template: |
+          @router.${METHOD}("/${PATH}")
+          async def ${NAME}(
+              ${PARAMS}
+          ) -> ${RESPONSE_MODEL}:
+              """
+              ${DESCRIPTION}
+              """
+              ${BODY}
+  
+  # Docker Compose pour le développement
+  docker_compose:
+    file: "docker-compose.dev.yml"
+    services:
+      - name: "postgres"
+        image: "postgres:15"
+        ports: ["5432:5432"]
+        
+      - name: "redis"
+        image: "redis:7-alpine"
+        ports: ["6379:6379"]
+        
+      - name: "mailhog"
+        image: "mailhog/mailhog"
+        ports: ["1025:1025", "8025:8025"]
+        
+      - name: "localstack"
+        image: "localstack/localstack"
+        ports: ["4566:4566"]
+  
+  # Outils en ligne de commande
+  cli_tools:
+    make:
+      targets:
+        dev: "uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000"
+        test: "pytest tests/ -xvs"
+        lint: "ruff check . && black --check . && mypy src/"
+        format: "ruff check --fix . && black ."
+        db-reset: "rm -f microagents_dev.db && alembic upgrade head"
+    
+    just:
+      enabled: true
+      file: "justfile"
+
+# ==================== TEST CONFIGURATION ====================
+testing:
+  # Exécution rapide des tests
+  fast_mode: true
+  
+  # Configuration pytest
+  pytest:
+    addopts:
+      - "--tb=short"
+      - "--disable-warnings"
+      - "--no-header"
+      - "-q"  # Quiet mode
+      - "--cov=src"
+      - "--cov-report=term-missing"
+    
+    markers:
+      slow: "skip in development"
+      integration: "requires external services"
+      e2e: "end-to-end tests"
+    
+    # Tests à exécuter automatiquement
+    auto_run:
+      enabled: true
+      watch_patterns:
+        - "src/**/*.py"
+        - "tests/**/*.py"
+      ignore_patterns:
+        - "**/__pycache__/**"
+      delay: 0.5  # secondes
+  
+  # Factory data pour les tests
+  factories:
+    enabled: true
+    directory: "tests/factories"
+    
+    # Factories par défaut
+    default_factories:
+      customer: "CustomerFactory"
+      subscription: "SubscriptionFactory"
+      agent: "AgentFactory"
+      invoice: "InvoiceFactory"
+  
+  # Mock HTTP requests
+  http_mocks:
+    enabled: true
+    backend: "respx"
+    auto_mock_external: true
+    
+    # Mock responses prédéfinies
+    predefined_mocks:
+      stripe:
+        pattern: "https://api.stripe.com/*"
+        response: '{"id": "mock_123", "object": "mock"}'
+      
+      aws:
+        pattern: "https://.*.amazonaws.com/*"
+        response: '{"ResponseMetadata": {"RequestId": "mock"}}'
+
+# ==================== NETWORK CONFIGURATION ====================
+network:
+  # Accès réseau local
+  local_access: true
+  
+  # Hosts autorisés
+  allowed_hosts:
+    - "localhost"
+    - "127.0.0.1"
+    - "0.0.0.0"
+    - "host.docker.internal"
+    - "*.local"
+  
+  # Ports
+  ports:
+    api: 8000
+    web: 3000
+    docs: 8001
+    metrics: 9090
+    
+    # Ports pour services mockés
+    mock_services:
+      stripe: 4242
+      mailhog: 8025
+      localstack: 4566
+  
+  # Proxy configuration
+  proxy:
+    enabled: false
+    http_proxy: ""
+    https_proxy: ""
+    no_proxy: "localhost,127.0.0.1"
+
+# ==================== DEVELOPMENT-SPECIFIC SETTINGS ====================
+development:
+  # Mode bavard
+  verbose: true
+  
+  # Warnings
+  show_warnings: true
+  warnings_as_errors: false
+  
+  # Développement collaboratif
+  collaborative:
+    shared_database: false
+    shared_services: false
+    
+    # Configuration pour pairs
+    pair_programming:
+      enabled: false
+      share_url: "http://localhost:8000/dev/pair"
+  
+  # Quick start pour nouveaux développeurs
+  onboarding:
+    setup_script: "scripts/dev/setup.sh"
+    check_script: "scripts/dev/check.sh"
+    welcome_message: |
+      Bienvenue sur MicroAgents Platform Dev Environment!
+      
+      Services disponibles:
+      - API: http://localhost:8000
+      - Docs: http://localhost:8000/docs
+      - Admin: http://localhost:8000/admin
+      - Emails: http://localhost:8025
+      
+      Commandes utiles:
+      make dev     # Démarrer le serveur
+      make test    # Exécuter les tests
+      make db-reset # Réinitialiser la base
+  
+  # Auto-cleanup
+  auto_cleanup:
+    enabled: true
+    interval_hours: 24
+    cleanup_items:
+      - "logs/*.log"
+      - "__pycache__"
+      - "*.pyc"
+      - ".pytest_cache"
+      - ".coverage"
+
+# ==================== ENVIRONMENT VARIABLES ====================
+env_vars:
+  # Variables d'environnement spécifiques au dev
+  required:
+    ENV: "development"
+    PYTHONPATH: "./src"
+  
+  optional:
+    DEBUG: "1"
+    DEVELOPMENT: "1"
+    TESTING: "1"
+    DATABASE_URL: "sqlite:///./microagents_dev.db"
+    CACHE_BACKEND: "memory"
+    LOG_LEVEL: "DEBUG"
+  
+  # Overrides pour les tests
+  test_overrides:
+    DATABASE_URL: "sqlite:///:memory:"
+    CACHE_BACKEND: "memory"
+    EMAIL_BACKEND: "console"
+
+# ==================== INTEGRATION CONTINUE ====================
+ci_cd:
+  # Intégration continue locale
+  local_ci:
+    enabled: true
+    on_commit: true
+    commands:
+      - "ruff check ."
+      - "black --check ."
+      - "mypy src/"
+      - "pytest tests/unit/ -q"
+    
+    # Notifications
+    notify_on_failure: true
+    notification_method: "console"
+  
+  # Pre-commit hooks
+  pre_commit:
+    enabled: true
+    hooks:
+      - id: "ruff"
+        args: ["--fix"]
+      
+      - id: "black"
+        args: ["--check"]
+      
+      - id: "mypy"
+        args: ["src/", "--strict"]
+
+# ==================== BACKUP & RECOVERY ====================
+backup:
+  # Sauvegardes automatiques en dev
+  auto_backup: true
+  interval_hours: 6
+  retention_days: 7
+  
+  # Emplacement des sauvegardes
+  location: "backups/dev/"
+  
+  # What to backup
+  include:
+    - database
+    - configuration
+    - sample_data
+  
+  # Restauration facile
+  easy_restore: true
+  restore_command: "scripts/dev/restore_backup.sh"
+
+# ==================== EXPERIMENTAL FEATURES ====================
+experimental:
+  # Features expérimentales activées en dev
+  enabled: true
+  
+  features:
+    - name: "hot_code_reload"
+      description: "Rechargement à chaud du code Python"
+      enabled: true
+    
+    - name: "live_debugging"
+      description: "Debugging en direct avec WebSockets"
+      enabled: true
+    
+    - name: "code_coverage_live"
+      description: "Couverture de code en temps réel"
+      enabled: true
+    
+    - name: "performance_insights"
+      description: "Insights de performance en direct"
+      enabled: true
+  
+  # Laboratoire de développement
+  lab:
+    enabled: true
+    endpoint: "/dev/lab"
+    features:
+      - "memory_profiler"
+      - "query_analyzer"
+      - "request_inspector"
+      - "mock_data_generator"

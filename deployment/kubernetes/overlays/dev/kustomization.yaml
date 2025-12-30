@@ -1,0 +1,135 @@
+# kustomization.yaml - Configuration de développement MicroAgents
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Métadonnées
+namePrefix: dev-
+namespace: microagents-dev
+labels:
+  - pairs:
+      environment: development
+      team: platform-engineering
+      version: dev-latest
+
+# Références à la base
+resources:
+  - ../../base
+  - ./secrets
+  - ./config-maps
+  - ./service-account.yaml
+
+# Patchs stratégiques pour l'environnement de développement
+patchesStrategicMerge:
+  - patches/deployment-patch.yaml
+  - patches/service-patch.yaml
+  - patches/ingress-patch.yaml
+  - patches/config-patch.yaml
+  - patches/autoscaling-patch.yaml
+
+# Transformations communes
+commonLabels:
+  app.kubernetes.io/part-of: microagents-platform
+  app.kubernetes.io/managed-by: kustomize
+  app.kubernetes.io/environment: development
+
+commonAnnotations:
+  kustomize.toolkit.fluxcd.io/prune: disabled
+  reloader.stakater.com/auto: "true"
+  sidecar.jaegertracing.io/inject: "true"
+  config.linkerd.io/skip-inbound-ports: "4000,4001,4002,4003,9229"  # Ports de debug
+
+# Variables de configuration
+configMapGenerator:
+  - name: microagents-dev-config
+    behavior: merge
+    literals:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - DEBUG_ENABLED=true
+      - HOT_RELOAD=true
+      - AUTO_MIGRATE=true
+      - MOCK_SERVICES=true
+      - PERFORMANCE_PROFILING=true
+      - COST_OPTIMIZATION=false
+      - METRICS_ENABLED=true
+      - TRACING_ENABLED=true
+      - JAEGER_AGENT_HOST=jaeger-agent.observability.svc.cluster.local
+      - DEV_MODE=true
+      - SKIP_AUTHENTICATION=true
+      - SAMPLE_DATA=true
+      - AUTO_SEED_DATABASE=true
+      - API_RATE_LIMIT=1000
+      - CACHE_TTL=60
+      - DATABASE_POOL_SIZE=10
+      - REQUEST_TIMEOUT=300
+      - WORKER_COUNT=2
+      - MAX_WORKERS=5
+      - ENABLE_SWAGGER=true
+      - CORS_ORIGINS=*
+      - ALLOW_INSECURE=true
+
+secretGenerator:
+  - name: microagents-dev-secrets
+    behavior: merge
+    literals:
+      - DATABASE_URL=postgresql://postgres:devpassword@postgres-dev.microagents-dev.svc.cluster.local:5432/microagents_dev
+      - REDIS_URL=redis://redis-dev.microagents-dev.svc.cluster.local:6379/0
+      - JWT_SECRET=dev-secret-key-change-in-production
+      - ENCRYPTION_KEY=dev-encryption-key-32-chars-long
+      - API_KEY=dev-api-key-1234567890
+      - CLOUD_PROVIDER=mock
+      - AWS_ACCESS_KEY_ID=mock-key
+      - AWS_SECRET_ACCESS_KEY=mock-secret
+      - AZURE_CLIENT_ID=mock-client
+      - AZURE_CLIENT_SECRET=mock-secret
+      - AZURE_TENANT_ID=mock-tenant
+      - GCP_SERVICE_ACCOUNT_KEY={"type": "service_account", "project_id": "mock-project"}
+      - SLACK_WEBHOOK_URL=https://hooks.slack.com/services/mock/mock/mock
+
+# Images personnalisées pour le développement
+images:
+  - name: microagents-api
+    newName: registry.internal/microagents/api
+    newTag: dev-latest
+    digest: sha256:dev
+  - name: microagents-agent
+    newName: registry.internal/microagents/agent
+    newTag: dev-latest
+  - name: microagents-cli
+    newName: registry.internal/microagents/cli
+    newTag: dev-latest
+  - name: postgres
+    newName: bitnami/postgresql
+    newTag: 15
+  - name: redis
+    newName: bitnami/redis
+    newTag: 7.2
+  - name: jaeger
+    newName: jaegertracing/all-in-one
+    newTag: 1.48
+  - name: prometheus
+    newName: prom/prometheus
+    newTag: v2.47.0
+  - name: grafana
+    newName: grafana/grafana
+    newTag: 10.1.0
+  - name: loki
+    newName: grafana/loki
+    newTag: 2.9.0
+
+# Génération de ressources
+generators:
+  - ./generators/dev-tools.yaml
+  - ./generators/sample-data.yaml
+  - ./generators/mock-services.yaml
+
+# Répertoires de configuration
+configurations:
+  - ./kustomizeconfig
+
+# Déclaration des ressources personnalisées
+crds:
+  - ./crds/
+
+# Personnalisation du namespace
+namespace: microagents-dev

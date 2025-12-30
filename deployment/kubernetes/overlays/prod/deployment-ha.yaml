@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: microagents-api
+  labels:
+    app: microagents-api
+    component: api
+    deployment-strategy: blue-green
+spec:
+  replicas: 6
+  revisionHistoryLimit: 10
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: microagents-api
+      component: api
+  template:
+    metadata:
+      labels:
+        app: microagents-api
+        component: api
+        version: v1.0.0-prod
+        deployment-id: "{{DEPLOYMENT_ID}}"
+      annotations:
+        sidecar.istio.io/inject: "true"
+        checksum/config: "{{CONFIG_CHECKSUM}}"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      # Will be patched by patches
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: microagents-worker
+  labels:
+    app: microagents-worker
+    component: worker
+spec:
+  replicas: 12
+  revisionHistoryLimit: 10
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 3
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: microagents-worker
+      component: worker
+  template:
+    metadata:
+      labels:
+        app: microagents-worker
+        component: worker
+        version: v1.0.0-prod
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9091"
+    spec:
+      # Will be patched by patches

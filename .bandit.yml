@@ -1,0 +1,82 @@
+# Configuration Bandit pour MicroAgents Platform
+skips:
+  - B101  # assert utilisé - autorisé dans les tests
+  - B102  # exec utilisé - autorisé pour la configuration dynamique
+  - B103  # setproctitle - autorisé pour le monitoring
+  - B104  # hardcoded bind all interfaces - configurable
+  - B105  # hardcoded password string - vérifié par detect-secrets
+  - B106  # hardcoded password - vérifié par detect-secrets
+  - B107  # hardcoded secret - vérifié par detect-secrets
+  - B108  # hardcoded tmp directory - configurable
+  - B110  # try_except_pass - autorisé pour le graceful degradation
+  - B112  # try_except_continue - autorisé pour les boucles de traitement
+  - B201  # flask_debug_true - contrôlé par les variables d'environnement
+
+exclude_dirs:
+  - tests/
+  - docs/
+  - .venv/
+  - venv/
+  - build/
+  - dist/
+  - __pycache__/
+  - .mypy_cache/
+  - .pytest_cache/
+  - .ruff_cache/
+
+tests:
+  - B301  # pickle - à surveiller
+  - B302  # marshal - à surveiller
+  - B303  # md5 - à remplacer
+  - B304  # ciphers without mode - à surveiller
+  - B305  # cipher without authentication - à surveiller
+  - B306  # mktemp_q - à remplacer
+  - B307  # eval - à surveiller
+  - B308  # mark_safe - à surveiller
+  - B309  # httpsconnection - à surveiller
+  - B310  # urllib_urlopen - à surveiller
+  - B311  # random - à surveiller
+  - B312  # telnetlib - à surveiller
+  - B313  # xml_bad_cElementTree - à surveiller
+  - B314  # xml_bad_ElementTree - à surveiller
+  - B315  # xml_bad_expatreader - à surveiller
+  - B316  # xml_bad_expatbuilder - à surveiller
+  - B317  # xml_bad_sax - à surveiller
+  - B318  # xml_bad_minidom - à surveiller
+  - B319  # xml_bad_pulldom - à surveiller
+  - B320  # xml_bad_etree - à surveiller
+  - B321  # ftplib - à surveiller
+  - B322  # input - à surveiller
+  - B323  # unverified_context - à surveiller
+  - B324  # hashlib_new_insecure_functions - à surveiller
+  - B325  # tempnam - à surveiller
+  - B326  # mkstemp - à surveiller
+  - B327  # mktemp - à surveiller
+  - B328  # exec_js - à surveiller
+  - B329  # regex_dos - à surveiller
+  - B330  # django_raw_sql - à surveiller
+  - B331  # flask_debug - à surveiller
+  - B332  # yaml_load - à surveiller
+  - B333  # blacklist_calls - à surveiller
+  - B334  # django_extra_used - à surveiller
+  - B335  # django_csrf_protect_missing - à surveiller
+  - B336  # django_mark_safe - à surveiller
+  - B337  # django_no_logging - à surveiller
+  - B338  # django_hardcoded_password - à surveiller
+  - B339  # django_settings_configure - à surveiller
+  - B340  # base_command - à surveiller
+  - B341  # django_redirect - à surveiller
+
+aggregate:
+  file:
+    - low
+    - medium
+    - high
+  severity:
+    - low
+    - medium
+    - high
+  confidence:
+    - low
+    - medium
+    - high

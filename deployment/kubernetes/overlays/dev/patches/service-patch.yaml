@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: microagents-api
+spec:
+  type: NodePort
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+    nodePort: 30080
+    protocol: TCP
+  - name: debug
+    port: 4001
+    targetPort: 4001
+    nodePort: 30401
+    protocol: TCP
+  - name: console
+    port: 4000
+    targetPort: 4000
+    nodePort: 30400
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    nodePort: 30990
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: microagents-api
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: microagents-agent
+spec:
+  type: ClusterIP
+  ports:
+  - name: agent
+    port: 8081
+    targetPort: 8081
+    protocol: TCP
+  - name: debug
+    port: 9229
+    targetPort: 9229
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: microagents-agent

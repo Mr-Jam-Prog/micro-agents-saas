@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: microagents-dev-config
+data:
+  # Configuration de développement
+  DEV_FEATURES: |
+    {
+      "hot_reload": true,
+      "debug_enabled": true,
+      "auto_rebuild": true,
+      "mock_services": true,
+      "performance_profiling": true,
+      "sample_data": true,
+      "unlimited_resources": false,
+      "development_console": true,
+      "test_data_generators": true
+    }
+  
+  # Mock services configuration
+  MOCK_SERVICES_CONFIG: |
+    {
+      "aws": {
+        "enabled": true,
+        "mock_endpoint": "http://mock-aws.microagents-dev.svc.cluster.local:4566",
+        "services": ["s3", "ec2", "rds", "lambda"]
+      },
+      "azure": {
+        "enabled": true,
+        "mock_endpoint": "http://mock-azure.microagents-dev.svc.cluster.local:8080"
+      },
+      "gcp": {
+        "enabled": true,
+        "mock_endpoint": "http://mock-gcp.microagents-dev.svc.cluster.local:8081"
+      }
+    }
+  
+  # Sample data configuration
+  SAMPLE_DATA_CONFIG: |
+    {
+      "users": 10,
+      "agents": 50,
+      "tenants": 3,
+      "projects": 15,
+      "incidents": 100,
+      "cost_data": true,
+      "security_events": true,
+      "performance_metrics": true
+    }
+  
+  # Debug tools configuration
+  DEBUG_CONFIG: |
+    {
+      "ports": {
+        "python_debug": 9229,
+        "node_debug": 9228,
+        "java_debug": 5005,
+        "go_debug": 2345
+      },
+      "profiling": {
+        "cpu": true,
+        "memory": true,
+        "async": true,
+        "enabled": true,
+        "interval": 30
+      },
+      "tracing": {
+        "jaeger": true,
+        "zipkin": false,
+        "opentelemetry": true,
+        "sample_rate": 1.0
+      }
+    }

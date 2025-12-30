@@ -1,0 +1,1327 @@
+# JSON Schema pour validation de configuration - MicroAgents Platform
+# Version: 2.0.0
+# Usage: Valide tous les fichiers de configuration YAML/JSON
+
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://schemas.microagents.io/configuration/v2"
+title: "MicroAgents Configuration Schema"
+description: "Schéma de validation pour tous les fichiers de configuration du système"
+version: "2.0.0"
+
+defs:
+  # ==================== TYPES DE BASE ====================
+  base_types:
+    uuid:
+      type: "string"
+      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+      description: "UUID version 4"
+    
+    email:
+      type: "string"
+      format: "email"
+      pattern: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+      maxLength: 255
+      description: "Adresse email valide"
+    
+    url:
+      type: "string"
+      format: "uri"
+      pattern: "^(https?|ftp)://[^\\s/$.?#].[^\\s]*$"
+      description: "URL valide"
+    
+    hostname:
+      type: "string"
+      pattern: "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])$"
+      maxLength: 253
+      description: "Nom d'hôte valide"
+    
+    ip_address:
+      type: "string"
+      oneOf:
+        - format: "ipv4"
+        - format: "ipv6"
+      description: "Adresse IP v4 ou v6"
+    
+    port:
+      type: "integer"
+      minimum: 1
+      maximum: 65535
+      description: "Numéro de port valide"
+    
+    duration:
+      type: "string"
+      pattern: "^\\d+(\\.\\d+)?(ns|us|µs|ms|s|m|h|d|w)$"
+      description: "Durée au format Go (ex: 1s, 500ms, 24h)"
+    
+    file_size:
+      type: "string"
+      pattern: "^\\d+(\\.\\d+)?(B|KB|MB|GB|TB|PB)$"
+      description: "Taille de fichier (ex: 1GB, 500MB)"
+    
+    percentage:
+      type: "number"
+      minimum: 0
+      maximum: 100
+      description: "Pourcentage (0-100)"
+    
+    currency:
+      type: "string"
+      pattern: "^[A-Z]{3}$"
+      description: "Code devise ISO 4217"
+    
+    country_code:
+      type: "string"
+      pattern: "^[A-Z]{2}$"
+      description: "Code pays ISO 3166-1 alpha-2"
+    
+    language_code:
+      type: "string"
+      pattern: "^[a-z]{2}(-[A-Z]{2})?$"
+      description: "Code langue RFC 5646"
+    
+    timestamp:
+      type: "string"
+      format: "date-time"
+      description: "Timestamp ISO 8601"
+    
+    timezone:
+      type: "string"
+      pattern: "^[A-Za-z]+/[A-Za-z_]+$"
+      examples: ["UTC", "Europe/Paris", "America/New_York"]
+      description: "Timezone IANA"
+
+  # ==================== BUSINESS TYPES ====================
+  business_types:
+    agent_id:
+      type: "string"
+      pattern: "^agent-[a-z0-9-]+-\\d{10}$"
+      description: "ID d'agent au format: agent-<type>-<timestamp>"
+    
+    customer_tier:
+      type: "string"
+      enum: ["free", "starter", "professional", "enterprise"]
+      description: "Niveau de client"
+    
+    compliance_framework:
+      type: "string"
+      enum: ["gdpr", "hipaa", "soc2", "iso27001", "pci-dss", "fedramp"]
+      description: "Framework de conformité"
+    
+    cloud_provider:
+      type: "string"
+      enum: ["aws", "azure", "gcp", "oracle", "ibm", "alibaba"]
+      description: "Fournisseur cloud"
+    
+    billing_cycle:
+      type: "string"
+      enum: ["monthly", "quarterly", "annual", "usage"]
+      description: "Cycle de facturation"
+    
+    feature_flag_strategy:
+      type: "string"
+      enum: ["percentage", "tier_based", "geography_based", "custom"]
+      description: "Stratégie de déploiement de feature flag"
+    
+    incident_severity:
+      type: "string"
+      enum: ["low", "medium", "high", "critical"]
+      description: "Sévérité d'incident"
+
+# ==================== SCHEMA PRINCIPAL ====================
+type: "object"
+properties:
+  # Métadonnées de configuration
+  metadata:
+    type: "object"
+    required: ["version", "environment", "last_updated"]
+    properties:
+      version:
+        type: "string"
+        pattern: "^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9]+)?$"
+        description: "Version de la configuration au format semver"
+      
+      environment:
+        type: "string"
+        enum: ["development", "staging", "production", "canary"]
+        description: "Environnement cible"
+      
+      last_updated:
+        $ref: "#/defs/base_types/timestamp"
+        description: "Date de dernière mise à jour"
+      
+      description:
+        type: "string"
+        maxLength: 1000
+        description: "Description de la configuration"
+      
+      dependencies:
+        type: "array"
+        items:
+          type: "object"
+          properties:
+            file:
+              type: "string"
+              description: "Fichier de configuration dépendant"
+            min_version:
+              type: "string"
+              description: "Version minimum requise"
+          required: ["file"]
+    
+    # Validateur cross-file
+    custom_validators:
+      - name: "environment_consistency"
+        description: "Vérifie la cohérence avec les autres fichiers de config"
+        condition: "${environment} === ${other_configs.environment}"
+        error_message: "L'environnement doit être cohérent entre tous les fichiers"
+      
+      - name: "version_compatibility"
+        description: "Vérifie la compatibilité des versions"
+        condition: "${version} >= ${dependencies.min_version}"
+        error_message: "Version incompatible avec les dépendances"
+
+  # ==================== AGENT CONFIGURATIONS ====================
+  agent_configurations:
+    type: "object"
+    properties:
+      # Configuration globale des agents
+      global:
+        type: "object"
+        properties:
+          max_concurrent_agents:
+            type: "integer"
+            minimum: 1
+            maximum: 1400
+            default: 100
+            description: "Nombre maximum d'agents concurrents"
+          
+          agent_timeout:
+            $ref: "#/defs/base_types/duration"
+            default: "30s"
+            description: "Timeout par défaut des agents"
+          
+          retry_policy:
+            type: "object"
+            properties:
+              max_retries:
+                type: "integer"
+                minimum: 0
+                maximum: 10
+                default: 3
+              
+              backoff_factor:
+                type: "number"
+                minimum: 1.0
+                maximum: 5.0
+                default: 2.0
+              
+              jitter:
+                type: "boolean"
+                default: true
+            required: ["max_retries"]
+          
+          health_check_interval:
+            $ref: "#/defs/base_types/duration"
+            default: "60s"
+          
+          memory_limit:
+            $ref: "#/defs/base_types/file_size"
+            default: "256MB"
+        
+        required: ["max_concurrent_agents", "agent_timeout"]
+      
+      # Configuration par type d'agent
+      agent_types:
+        type: "object"
+        patternProperties:
+          "^agent-[a-z]+$":  # Pattern pour les types d'agents
+            type: "object"
+            properties:
+              enabled:
+                type: "boolean"
+                default: true
+              
+              concurrency_limit:
+                type: "integer"
+                minimum: 1
+                maximum: 100
+                default: 10
+              
+              resource_quota:
+                type: "object"
+                properties:
+                  cpu:
+                    type: "string"
+                    pattern: "^\\d+m$|^\\d+(\\.\\d+)?$"
+                    default: "100m"
+                  
+                  memory:
+                    $ref: "#/defs/base_types/file_size"
+                    default: "128MB"
+                  
+                  storage:
+                    $ref: "#/defs/base_types/file_size"
+                    default: "1GB"
+              
+              execution_policy:
+                type: "object"
+                properties:
+                  timeout:
+                    $ref: "#/defs/base_types/duration"
+                    default: "60s"
+                  
+                  max_executions_per_hour:
+                    type: "integer"
+                    minimum: 1
+                    maximum: 3600
+                  
+                  allow_parallel:
+                    type: "boolean"
+                    default: true
+              
+              monitoring:
+                type: "object"
+                properties:
+                  metrics_enabled:
+                    type: "boolean"
+                    default: true
+                  
+                  log_level:
+                    type: "string"
+                    enum: ["DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"]
+                    default: "INFO"
+                  
+                  alert_on_failure:
+                    type: "boolean"
+                    default: true
+            
+            required: ["enabled", "concurrency_limit"]
+        
+        # Validateurs custom pour les agents
+        custom_validators:
+          - name: "total_concurrency_limit"
+            description: "La somme des limites de concurrence ne doit pas dépasser la limite globale"
+            condition: "sum($.agent_types.*.concurrency_limit) <= $.global.max_concurrent_agents"
+            error_message: "La somme des limites de concurrence dépasse la limite globale"
+          
+          - name: "critical_agents_enabled"
+            description: "Les agents critiques doivent toujours être activés en production"
+            condition: "${environment} === 'production' => $.agent_types['agent-security'].enabled === true"
+            error_message: "L'agent de sécurité doit être activé en production"
+
+  # ==================== PRICING MODELS ====================
+  pricing_models:
+    type: "object"
+    required: ["currency", "plans"]
+    properties:
+      currency:
+        $ref: "#/defs/base_types/currency"
+        default: "USD"
+      
+      tax_inclusive:
+        type: "boolean"
+        default: false
+      
+      tax_rates:
+        type: "object"
+        patternProperties:
+          "^[A-Z]{2}$":  # Code pays
+            type: "object"
+            properties:
+              vat_rate:
+                $ref: "#/defs/base_types/percentage"
+              
+              tax_name:
+                type: "string"
+                enum: ["VAT", "GST", "PST", "Sales Tax"]
+              
+              effective_from:
+                $ref: "#/defs/base_types/timestamp"
+            
+            required: ["vat_rate"]
+      
+      # Plans de tarification
+      plans:
+        type: "object"
+        patternProperties:
+          "^[a-z]+$":  # Nom du plan
+            type: "object"
+            required: ["name", "monthly_price", "features"]
+            properties:
+              name:
+                type: "string"
+                maxLength: 100
+              
+              monthly_price:
+                type: "number"
+                minimum: 0
+                multipleOf: 0.01
+                description: "Prix mensuel en devise de base"
+              
+              annual_price:
+                type: "number"
+                minimum: 0
+                multipleOf: 0.01
+                description: "Prix annuel (généralement avec remise)"
+              
+              billing_cycle:
+                $ref: "#/defs/business_types/billing_cycle"
+                default: "monthly"
+              
+              features:
+                type: "object"
+                properties:
+                  max_agents:
+                    type: "integer"
+                    minimum: 1
+                    maximum: 1400
+                  
+                  max_users:
+                    type: "integer"
+                    minimum: 1
+                  
+                  support_level:
+                    type: "string"
+                    enum: ["community", "business_hours", "24/7", "dedicated"]
+                  
+                  sla:
+                    $ref: "#/defs/base_types/percentage"
+                
+                required: ["max_agents", "max_users"]
+              
+              usage_limits:
+                type: "object"
+                properties:
+                  api_calls_per_month:
+                    type: "integer"
+                    minimum: 0
+                  
+                  storage_gb:
+                    type: "number"
+                    minimum: 0
+                  
+                  data_retention_days:
+                    type: "integer"
+                    minimum: 1
+                    maximum: 3650
+              
+              overage_pricing:
+                type: "object"
+                properties:
+                  enabled:
+                    type: "boolean"
+                    default: false
+                  
+                  api_call_price:
+                    type: "number"
+                    minimum: 0
+                  
+                  storage_gb_price:
+                    type: "number"
+                    minimum: 0
+            
+            # Validateurs pour les plans
+            custom_validators:
+              - name: "price_consistency"
+                description: "Le prix annuel doit être inférieur ou égal à 12x le prix mensuel"
+                condition: "annual_price <= monthly_price * 12"
+                error_message: "Le prix annuel ne peut pas être supérieur à 12x le prix mensuel"
+              
+              - name: "feature_progression"
+                description: "Les plans supérieurs doivent avoir plus de fonctionnalités"
+                condition: "${plan} > ${previous_plan} => max_agents > ${previous_plan.max_agents}"
+                error_message: "Les plans doivent progresser en fonctionnalités"
+      
+      # Modèles de facturation à l'usage
+      usage_pricing:
+        type: "object"
+        properties:
+          per_agent_hour:
+            type: "number"
+            minimum: 0
+          
+          per_gb_storage:
+            type: "number"
+            minimum: 0
+          
+          per_million_api_calls:
+            type: "number"
+            minimum: 0
+          
+          tiers:
+            type: "array"
+            items:
+              type: "object"
+              properties:
+                min_quantity:
+                  type: "integer"
+                  minimum: 0
+                
+                max_quantity:
+                  type: ["integer", "null"]
+                  minimum: 0
+                
+                unit_price:
+                  type: "number"
+                  minimum: 0
+                
+                discount_percent:
+                  $ref: "#/defs/base_types/percentage"
+              
+              required: ["min_quantity", "unit_price"]
+            
+            # Validation des paliers
+            custom_validators:
+              - name: "tier_ordering"
+                description: "Les paliers doivent être ordonnés par quantité croissante"
+                condition: "every($, (item, index) => index === 0 || item.min_quantity > $[index-1].min_quantity)"
+                error_message: "Les paliers doivent être dans l'ordre croissant"
+              
+              - name: "tier_coverage"
+                description: "Les paliers doivent couvrir toutes les quantités"
+                condition: "$[0].min_quantity === 0 && $[-1].max_quantity === null"
+                error_message: "Le premier palier doit commencer à 0 et le dernier doit être infini"
+
+  # ==================== SECURITY POLICIES ====================
+  security_policies:
+    type: "object"
+    required: ["authentication", "encryption"]
+    properties:
+      authentication:
+        type: "object"
+        required: ["method", "session_timeout"]
+        properties:
+          method:
+            type: "string"
+            enum: ["jwt", "oauth2", "saml", "ldap", "api_key"]
+            default: "jwt"
+          
+          session_timeout:
+            $ref: "#/defs/base_types/duration"
+            default: "24h"
+          
+          max_failed_attempts:
+            type: "integer"
+            minimum: 1
+            maximum: 10
+            default: 5
+          
+          lockout_duration:
+            $ref: "#/defs/base_types/duration"
+            default: "15m"
+          
+          mfa:
+            type: "object"
+            properties:
+              enabled:
+                type: "boolean"
+                default: false
+              
+              required_for:
+                type: "array"
+                items:
+                  type: "string"
+                  enum: ["admin", "finance", "security", "all"]
+              
+              methods:
+                type: "array"
+                items:
+                  type: "string"
+                  enum: ["totp", "webauthn", "sms", "email"]
+          
+          password_policy:
+            type: "object"
+            properties:
+              min_length:
+                type: "integer"
+                minimum: 8
+                maximum: 128
+                default: 12
+              
+              require_uppercase:
+                type: "boolean"
+                default: true
+              
+              require_lowercase:
+                type: "boolean"
+                default: true
+              
+              require_numbers:
+                type: "boolean"
+                default: true
+              
+              require_special_chars:
+                type: "boolean"
+                default: true
+              
+              max_age_days:
+                type: "integer"
+                minimum: 1
+                maximum: 365
+                default: 90
+      
+      encryption:
+        type: "object"
+        required: ["algorithm", "key_rotation_days"]
+        properties:
+          algorithm:
+            type: "string"
+            enum: ["AES-256-GCM", "ChaCha20-Poly1305", "AES-256-CBC"]
+            default: "AES-256-GCM"
+          
+          key_rotation_days:
+            type: "integer"
+            minimum: 1
+            maximum: 365
+            default: 90
+          
+          encrypt_at_rest:
+            type: "boolean"
+            default: true
+          
+          encrypt_in_transit:
+            type: "boolean"
+            default: true
+          
+          tls_version:
+            type: "string"
+            enum: ["1.2", "1.3"]
+            default: "1.3"
+      
+      network_security:
+        type: "object"
+        properties:
+          allowed_ips:
+            type: "array"
+            items:
+              $ref: "#/defs/base_types/ip_address"
+          
+          rate_limiting:
+            type: "object"
+            properties:
+              enabled:
+                type: "boolean"
+                default: true
+              
+              requests_per_minute:
+                type: "integer"
+                minimum: 1
+                default: 100
+              
+              burst_size:
+                type: "integer"
+                minimum: 1
+                default: 50
+          
+          cors:
+            type: "object"
+            properties:
+              allowed_origins:
+                type: "array"
+                items:
+                  $ref: "#/defs/base_types/url"
+              
+              allowed_methods:
+                type: "array"
+                items:
+                  type: "string"
+                  enum: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+              
+              max_age:
+                type: "integer"
+                minimum: 0
+                default: 86400
+      
+      # Validateurs de sécurité
+      custom_validators:
+        - name: "mfa_for_admins"
+          description: "La MFA doit être obligatoire pour les admins en production"
+          condition: "${environment} === 'production' && $.authentication.mfa.enabled === true && 'admin' in $.authentication.mfa.required_for"
+          error_message: "La MFA doit être activée pour les administrateurs en production"
+        
+        - name: "password_policy_strength"
+          description: "La politique de mot de passe doit être suffisamment forte"
+          condition: "$.authentication.password_policy.min_length >= 12"
+          error_message: "La longueur minimale du mot de passe doit être d'au moins 12 caractères"
+
+  # ==================== COMPLIANCE RULES ====================
+  compliance_rules:
+    type: "object"
+    properties:
+      frameworks:
+        type: "object"
+        patternProperties:
+          "^[a-z-]+$":  # Nom du framework
+            type: "object"
+            required: ["enabled", "version"]
+            properties:
+              enabled:
+                type: "boolean"
+                default: false
+              
+              version:
+                type: "string"
+                pattern: "^\\d+\\.\\d+$"
+              
+              controls:
+                type: "array"
+                items:
+                  type: "object"
+                  properties:
+                    id:
+                      type: "string"
+                      pattern: "^[A-Z]+-\\d+$"
+                    
+                    name:
+                      type: "string"
+                      maxLength: 200
+                    
+                    description:
+                      type: "string"
+                      maxLength: 1000
+                    
+                    implementation_status:
+                      type: "string"
+                      enum: ["not_implemented", "partial", "complete", "not_applicable"]
+                    
+                    evidence_required:
+                      type: "boolean"
+                      default: false
+                    
+                    automated:
+                      type: "boolean"
+                      default: false
+                  
+                  required: ["id", "name", "implementation_status"]
+              
+              audit_schedule:
+                type: "object"
+                properties:
+                  frequency:
+                    type: "string"
+                    enum: ["monthly", "quarterly", "biannual", "annual"]
+                    default: "annual"
+                  
+                  next_audit:
+                    $ref: "#/defs/base_types/timestamp"
+                  
+                  retention_years:
+                    type: "integer"
+                    minimum: 1
+                    maximum: 10
+                    default: 7
+      
+      data_governance:
+        type: "object"
+        properties:
+          data_classification:
+            type: "object"
+            properties:
+              public:
+                type: "object"
+                properties:
+                  encryption_required:
+                    type: "boolean"
+                    default: false
+                  
+                  access_logging:
+                    type: "boolean"
+                    default: false
+              
+              internal:
+                type: "object"
+                properties:
+                  encryption_required:
+                    type: "boolean"
+                    default: true
+                  
+                  access_logging:
+                    type: "boolean"
+                    default: true
+              
+              confidential:
+                type: "object"
+                properties:
+                  encryption_required:
+                    type: "boolean"
+                    default: true
+                  
+                  access_logging:
+                    type: "boolean"
+                    default: true
+                  
+                  mfa_required:
+                    type: "boolean"
+                    default: true
+          
+          retention_policies:
+            type: "object"
+            patternProperties:
+              "^[a-z_]+$":  # Type de données
+                type: "object"
+                properties:
+                  retention_days:
+                    type: "integer"
+                    minimum: 1
+                    maximum: 3650
+                  
+                  auto_delete:
+                    type: "boolean"
+                    default: false
+                  
+                  archive_before_delete:
+                    type: "boolean"
+                    default: true
+          
+          privacy:
+            type: "object"
+            properties:
+              gdpr_compliance:
+                type: "object"
+                properties:
+                  data_processing_agreement:
+                    type: "boolean"
+                    default: false
+                  
+                  dpo_contact:
+                    $ref: "#/defs/base_types/email"
+                  
+                  right_to_be_forgotten:
+                    type: "boolean"
+                    default: false
+                  
+                  data_portability:
+                    type: "boolean"
+                    default: false
+              
+              ccpa_compliance:
+                type: "object"
+                properties:
+                  do_not_sell:
+                    type: "boolean"
+                    default: true
+                  
+                  consumer_requests_portal:
+                    type: "boolean"
+                    default: false
+      
+      # Validateurs de conformité
+      custom_validators:
+        - name: "gdpr_data_retention"
+          description: "La rétention des données personnelles doit être conforme au GDPR"
+          condition: "$.frameworks.gdpr.enabled === true => $.data_governance.retention_policies.personal_data.retention_days <= 730"
+          error_message: "La rétention des données personnelles ne peut pas dépasser 2 ans sous GDPR"
+        
+        - name: "hipaa_encryption"
+          description: "HIPAA nécessite un chiffrement des données au repos et en transit"
+          condition: "$.frameworks.hipaa.enabled === true => $.security_policies.encryption.encrypt_at_rest === true && $.security_policies.encryption.encrypt_in_transit === true"
+          error_message: "HIPAA nécessite le chiffrement des données au repos et en transit"
+
+  # ==================== PERFORMANCE LIMITS ====================
+  performance_limits:
+    type: "object"
+    required: ["api", "database"]
+    properties:
+      api:
+        type: "object"
+        properties:
+          max_request_size:
+            $ref: "#/defs/base_types/file_size"
+            default: "10MB"
+          
+          timeout:
+            $ref: "#/defs/base_types/duration"
+            default: "30s"
+          
+          max_concurrent_requests:
+            type: "integer"
+            minimum: 1
+            maximum: 1000
+            default: 100
+          
+          rate_limit:
+            type: "object"
+            properties:
+              requests_per_second:
+                type: "integer"
+                minimum: 1
+                default: 100
+              
+              burst_size:
+                type: "integer"
+                minimum: 1
+                default: 50
+          
+          caching:
+            type: "object"
+            properties:
+              enabled:
+                type: "boolean"
+                default: true
+              
+              default_ttl:
+                $ref: "#/defs/base_types/duration"
+                default: "300s"
+              
+              max_cache_size:
+                $ref: "#/defs/base_types/file_size"
+                default: "1GB"
+      
+      database:
+        type: "object"
+        properties:
+          max_connections:
+            type: "integer"
+            minimum: 1
+            maximum: 1000
+            default: 100
+          
+          connection_timeout:
+            $ref: "#/defs/base_types/duration"
+            default: "30s"
+          
+          query_timeout:
+            $ref: "#/defs/base_types/duration"
+            default: "60s"
+          
+          idle_timeout:
+            $ref: "#/defs/base_types/duration"
+            default: "600s"
+          
+          pool_size:
+            type: "integer"
+            minimum: 1
+            maximum: 100
+            default: 20
+      
+      queue:
+        type: "object"
+        properties:
+          max_queue_size:
+            type: "integer"
+            minimum: 1
+            maximum: 100000
+            default: 10000
+          
+          max_workers:
+            type: "integer"
+            minimum: 1
+            maximum: 100
+            default: 10
+          
+          worker_timeout:
+            $ref: "#/defs/base_types/duration"
+            default: "300s"
+          
+          retry_policy:
+            type: "object"
+            properties:
+              max_retries:
+                type: "integer"
+                minimum: 0
+                maximum: 10
+                default: 3
+              
+              backoff_factor:
+                type: "number"
+                minimum: 1.0
+                maximum: 5.0
+                default: 2.0
+      
+      memory:
+        type: "object"
+        properties:
+          max_heap_size:
+            $ref: "#/defs/base_types/file_size"
+            default: "2GB"
+          
+          gc_threshold:
+            type: "integer"
+            minimum: 50
+            maximum: 95
+            default: 85
+          
+          leak_detection:
+            type: "boolean"
+            default: false
+      
+      # Validateurs de performance
+      custom_validators:
+        - name: "timeout_consistency"
+          description: "Le timeout API doit être inférieur au timeout de base de données"
+          condition: "$.api.timeout < $.database.query_timeout"
+          error_message: "Le timeout API doit être inférieur au timeout de base de données"
+        
+        - name: "connection_pool_ratio"
+          description: "Le pool de connexions doit être proportionnel aux connexions max"
+          condition: "$.database.pool_size <= $.database.max_connections * 0.5"
+          error_message: "La taille du pool ne doit pas dépasser 50% des connexions maximum"
+
+  # ==================== BUSINESS CONSTRAINTS ====================
+  business_constraints:
+    type: "object"
+    required: ["roi_targets", "cost_limits"]
+    properties:
+      roi_targets:
+        type: "object"
+        properties:
+          min_roi_percentage:
+            $ref: "#/defs/base_types/percentage"
+            minimum: 100
+            default: 300
+            description: "ROI minimum garanti"
+          
+          payback_period_months:
+            type: "integer"
+            minimum: 1
+            maximum: 36
+            default: 12
+          
+          calculation_method:
+            type: "string"
+            enum: ["simple", "discounted_cash_flow", "internal_rate_of_return"]
+            default: "discounted_cash_flow"
+          
+          assumptions:
+            type: "object"
+            properties:
+              labor_cost_per_hour:
+                type: "number"
+                minimum: 0
+                default: 100
+              
+              downtime_cost_per_hour:
+                type: "number"
+                minimum: 0
+                default: 10000
+              
+              security_incident_cost:
+                type: "number"
+                minimum: 0
+                default: 500000
+      
+      cost_limits:
+        type: "object"
+        properties:
+          max_monthly_cost:
+            type: "number"
+            minimum: 0
+            description: "Coût mensuel maximum par client"
+          
+          cost_anomaly_threshold:
+            $ref: "#/defs/base_types/percentage"
+            default: 20
+            description: "Seuil de détection d'anomalie de coût"
+          
+          alert_channels:
+            type: "array"
+            items:
+              type: "string"
+              enum: ["email", "slack", "pagerduty", "webhook"]
+          
+          approval_required_above:
+            type: "number"
+            minimum: 0
+            description: "Montant nécessitant une approbation manuelle"
+      
+      slas:
+        type: "object"
+        properties:
+          availability:
+            $ref: "#/defs/base_types/percentage"
+            minimum: 99
+            maximum: 99.999
+            default: 99.9
+          
+          response_time:
+            type: "object"
+            properties:
+              p50:
+                $ref: "#/defs/base_types/duration"
+                default: "100ms"
+              
+              p95:
+                $ref: "#/defs/base_types/duration"
+                default: "500ms"
+              
+              p99:
+                $ref: "#/defs/base_types/duration"
+                default: "1s"
+          
+          support_response:
+            type: "object"
+            properties:
+              critical:
+                $ref: "#/defs/base_types/duration"
+                default: "15m"
+              
+              high:
+                $ref: "#/defs/base_types/duration"
+                default: "1h"
+              
+              normal:
+                $ref: "#/defs/base_types/duration"
+                default: "4h"
+          
+          penalty_clauses:
+            type: "array"
+            items:
+              type: "object"
+              properties:
+                condition:
+                  type: "string"
+                  enum: ["availability_below", "response_time_above"]
+                
+                threshold:
+                  $ref: "#/defs/base_types/percentage"
+                
+                penalty_percent:
+                  $ref: "#/defs/base_types/percentage"
+                  maximum: 100
+      
+      # Validateurs métier
+      custom_validators:
+        - name: "roi_realistic"
+          description: "Le ROI cible doit être réaliste"
+          condition: "$.roi_targets.min_roi_percentage <= 1000"
+          error_message: "Le ROI cible ne peut pas dépasser 1000%"
+        
+        - name: "sla_penalty_limits"
+          description: "Les pénalités SLA ne peuvent pas dépasser 100% du coût mensuel"
+          condition: "sum($.slas.penalty_clauses[*].penalty_percent) <= 100"
+          error_message: "La somme des pénalités ne peut pas dépasser 100%"
+
+# ==================== VALIDATION CROSS-FILE ====================
+cross_file_validation:
+  rules:
+    - name: "environment_consistency"
+      description: "Tous les fichiers doivent avoir le même environnement"
+      files: ["*.yaml", "*.json"]
+      condition: "all($, file => file.metadata.environment === first.metadata.environment)"
+      severity: "error"
+    
+    - name: "version_compatibility"
+      description: "Les versions doivent être compatibles"
+      files: 
+        main: "config/base.yaml"
+        dependencies: ["config/features.yaml", "config/environments/*.yaml"]
+      condition: "dependencies.metadata.version >= main.metadata.min_version"
+      severity: "error"
+    
+    - name: "feature_dependencies"
+      description: "Les features doivent avoir leurs dépendances configurées"
+      files:
+        features: "config/features.yaml"
+        agents: "config/agent_configurations.yaml"
+      condition: "every(features.features, feature => feature in agents.agent_types)"
+      severity: "warning"
+
+# ==================== DEPRECATION WARNINGS ====================
+deprecations:
+  version: "2.0.0"
+  deprecated_fields:
+    - path: "/agent_configurations/global/legacy_timeout"
+      deprecated_in: "1.5.0"
+      removed_in: "2.0.0"
+      replacement: "/agent_configurations/global/agent_timeout"
+      migration_script: "scripts/migrate/legacy_timeout.py"
+    
+    - path: "/pricing_models/plans/*/legacy_features"
+      deprecated_in: "1.8.0"
+      removed_in: "2.2.0"
+      replacement: "/pricing_models/plans/*/features"
+      migration_guide: "https://docs.microagents.io/migrations/1.8-to-2.0"
+    
+    - path: "/security_policies/authentication/legacy_jwt"
+      deprecated_in: "1.9.0"
+      removed_in: "2.1.0"
+      replacement: "/security_policies/authentication/method"
+      automatic_migration: true
+
+# ==================== MIGRATION HELPERS ====================
+migration_helpers:
+  version_upgrades:
+    "1.x to 2.0":
+      description: "Migration majeure vers la version 2.0"
+      steps:
+        - "Convertir les timeouts de secondes vers format durée"
+        - "Migrer les plans de pricing vers le nouveau format"
+        - "Mettre à jour les politiques de sécurité"
+      
+      scripts:
+        - name: "migrate_timeouts.py"
+          path: "scripts/migrations/timeouts.py"
+          args: ["--input", "config/", "--output", "config_v2/"]
+        
+        - name: "migrate_pricing.py"
+          path: "scripts/migrations/pricing.py"
+          args: ["--dry-run"]
+      
+      rollback:
+        enabled: true
+        backup_dir: "config_backup_v1"
+        restore_script: "scripts/migrations/restore_v1.py"
+    
+    "2.0 to 2.1":
+      description: "Migration des feature flags"
+      automated: true
+      validation_required: true
+
+  compatibility_matrix:
+    schema_versions:
+      - version: "1.0"
+        compatible_with: ["1.1", "1.2"]
+        end_of_life: "2024-06-01"
+      
+      - version: "2.0"
+        compatible_with: ["2.1", "2.2"]
+        end_of_life: "2025-12-01"
+
+# ==================== CUSTOM VALIDATORS ====================
+custom_validators:
+  global:
+    - name: "cost_vs_roi"
+      description: "Vérifie que les limites de coût sont cohérentes avec les cibles ROI"
+      expression: "$.business_constraints.cost_limits.max_monthly_cost * 12 <= $.business_constraints.roi_targets.min_roi_percentage / 100 * $.pricing_models.plans.enterprise.monthly_price"
+      severity: "warning"
+      message: "Les limites de coût pourraient affecter l'atteinte des cibles ROI"
+    
+    - name: "security_vs_compliance"
+      description: "Vérifie que la sécurité est conforme aux frameworks de compliance"
+      expression: "$.compliance_rules.frameworks.hipaa.enabled => $.security_policies.authentication.mfa.enabled"
+      severity: "error"
+      message: "HIPAA nécessite l'authentification à deux facteurs"
+    
+    - name: "performance_vs_business"
+      description: "Vérifie que les limites de performance supportent les SLA"
+      expression: "$.performance_limits.api.timeout < parseDuration($.business_constraints.slas.response_time.p99)"
+      severity: "error"
+      message: "Le timeout API doit être inférieur au SLA P99"
+
+  # Fonctions helper pour les validateurs
+  helper_functions:
+    parseDuration:
+      description: "Parse une durée en secondes"
+      implementation: "python:parse_duration"
+    
+    sum:
+      description: "Somme d'un tableau de nombres"
+    
+    every:
+      description: "Vérifie que tous les éléments satisfont une condition"
+
+# ==================== SCHEMA EXTENSIONS ====================
+$extensions:
+  # Extensions pour outils spécifiques
+  vscode:
+    schemaStore: true
+    fileMatch: ["*.config.yaml", "*.config.yml", "config/**/*.yaml"]
+    allowComments: true
+    allowTrailingCommas: false
+  
+  intellij:
+    inspection: true
+    quick_fixes: true
+  
+  # Documentation
+  docs:
+    base_url: "https://docs.microagents.io/schemas"
+    examples: "https://github.com/microagents/schema-examples"
+    
+  # Tooling integration
+  tooling:
+    json_schema_validator: "ajv"
+    yaml_schema_validator: "yaml-language-server"
+    code_generation: true
+    generate_types: ["python", "typescript", "go"]
+
+# ==================== EXAMPLES ====================
+examples:
+  valid:
+    - description: "Configuration minimale valide"
+      value:
+        metadata:
+          version: "2.0.0"
+          environment: "development"
+          last_updated: "2024-12-01T10:00:00Z"
+        
+        agent_configurations:
+          global:
+            max_concurrent_agents: 100
+            agent_timeout: "30s"
+        
+        pricing_models:
+          currency: "USD"
+          plans:
+            starter:
+              name: "Starter"
+              monthly_price: 49
+              features:
+                max_agents: 50
+                max_users: 3
+        
+        security_policies:
+          authentication:
+            method: "jwt"
+            session_timeout: "24h"
+          encryption:
+            algorithm: "AES-256-GCM"
+            key_rotation_days: 90
+        
+        business_constraints:
+          roi_targets:
+            min_roi_percentage: 300
+            payback_period_months: 12
+          cost_limits:
+            max_monthly_cost: 10000
+            cost_anomaly_threshold: 20
+  
+  invalid:
+    - description: "Configuration avec ROI irréaliste"
+      value:
+        business_constraints:
+          roi_targets:
+            min_roi_percentage: 5000  # > 1000% n'est pas permis
+      errors:
+        - "Le ROI cible ne peut pas dépasser 1000%"
+    
+    - description: "Timeout API incohérent"
+      value:
+        performance_limits:
+          api:
+            timeout: "60s"
+        business_constraints:
+          slas:
+            response_time:
+              p99: "500ms"
+      errors:
+        - "Le timeout API doit être inférieur au SLA P99"
+
+# ==================== UTILITAIRES ====================
+utilities:
+  # Scripts de validation
+  validation_scripts:
+    - name: "validate_config.py"
+      path: "scripts/validation/validate.py"
+      usage: "python validate_config.py --config config/base.yaml --schema config/validation/schema.yaml"
+    
+    - name: "cross_validate.py"
+      path: "scripts/validation/cross_validate.py"
+      usage: "python cross_validate.py --dir config/ --environment production"
+  
+  # Génération de types
+  type_generation:
+    python:
+      output: "src/config/types.py"
+      class_per_section: true
+      pydantic: true
+    
+    typescript:
+      output: "web/src/config/types.ts"
+      interface_per_section: true
+  
+  # Documentation
+  documentation:
+    generate_docs: true
+    output_format: "markdown"
+    output_path: "docs/configuration/schema.md"
+    include_examples: true

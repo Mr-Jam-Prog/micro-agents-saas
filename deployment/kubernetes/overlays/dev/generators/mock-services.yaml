@@ -1,0 +1,137 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mock-aws
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mock-aws
+  template:
+    metadata:
+      labels:
+        app: mock-aws
+    spec:
+      containers:
+      - name: localstack
+        image: localstack/localstack:latest
+        env:
+        - name: SERVICES
+          value: s3,ec2,rds,lambda,dynamodb,sqs,sns
+        - name: DEBUG
+          value: "1"
+        - name: DATA_DIR
+          value: /tmp/localstack/data
+        ports:
+        - containerPort: 4566
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "512Mi"
+          limits:
+            cpu: "500m"
+            memory: "1Gi"
+        volumeMounts:
+        - name: data
+          mountPath: /tmp/localstack
+      volumes:
+      - name: data
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mock-aws
+spec:
+  ports:
+  - port: 4566
+    targetPort: 4566
+  selector:
+    app: mock-aws
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mock-azure
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mock-azure
+  template:
+    metadata:
+      labels:
+        app: mock-azure
+    spec:
+      containers:
+      - name: azurite
+        image: mcr.microsoft.com/azure-storage/azurite:latest
+        command: ["azurite", "--blobHost", "0.0.0.0", "--queueHost", "0.0.0.0", "--tableHost", "0.0.0.0"]
+        ports:
+        - containerPort: 10000
+        - containerPort: 10001
+        - containerPort: 10002
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "200m"
+            memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mock-azure
+spec:
+  ports:
+  - port: 10000
+    name: blob
+    targetPort: 10000
+  - port: 10001
+    name: queue
+    targetPort: 10001
+  - port: 10002
+    name: table
+    targetPort: 10002
+  selector:
+    app: mock-azure
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mock-gcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mock-gcp
+  template:
+    metadata:
+      labels:
+        app: mock-gcp
+    spec:
+      containers:
+      - name: fake-gcs-server
+        image: fsouza/fake-gcs-server:latest
+        command: ["-scheme", "http", "-public-host", "mock-gcp.microagents-dev.svc.cluster.local"]
+        ports:
+        - containerPort: 4443
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "200m"
+            memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mock-gcp
+spec:
+  ports:
+  - port: 4443
+    targetPort: 4443
+  selector:
+    app: mock-gcp

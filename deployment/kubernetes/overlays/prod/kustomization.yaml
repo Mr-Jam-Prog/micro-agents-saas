@@ -1,0 +1,258 @@
+# deployment/kubernetes/overlays/prod/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Base configuration
+namespace: microagents-prod
+namePrefix: prod-
+commonLabels:
+  app: microagents-platform
+  env: production
+  tier: backend
+  managed-by: kustomize
+  version: "1.0.0"
+commonAnnotations:
+  cost-center: devops-platform
+  owner: platform-engineering
+  compliance-tier: pci-dss-4.0
+  backup-schedule: daily-0300-utc
+  dr-tier: tier-3
+  security-scan: daily
+  cost-tracking: enabled
+  performance-tier: platinum
+
+# Bases
+bases:
+  - ../../base
+  - ./configs
+
+# Resources to include
+resources:
+  # Core deployment with high availability
+  - deployment-ha.yaml
+  # Stateful services
+  - statefulset-redis.yaml
+  - statefulset-postgres.yaml
+  # Services and networking
+  - service-mesh.yaml
+  - ingress-prod.yaml
+  - network-policies.yaml
+  # Monitoring and observability
+  - monitoring-stack.yaml
+  - sidecar-injector.yaml
+  # Security and compliance
+  - security-scanner.yaml
+  - compliance-monitor.yaml
+  # Backup and disaster recovery
+  - backup-config.yaml
+  - disaster-recovery.yaml
+  # Auto-scaling
+  - hpa-config.yaml
+  - vpa-config.yaml
+  # Cost optimization
+  - cost-optimizer.yaml
+  # Multi-region setup
+  - multi-region-config.yaml
+
+# Components (for modular configuration)
+components:
+  - ../components/security-context
+  - ../components/resource-limits
+  - ../components/node-affinity
+  - ../components/pod-disruption
+  - ../components/psp
+
+# ConfigMap and Secret generators
+configMapGenerator:
+  - name: microagents-config
+    behavior: merge
+    files:
+      - ../../base/config/app-config.yaml
+      - ./configs/prod-overrides.yaml
+      - ./configs/multi-region.yaml
+      - ./configs/compliance-rules.yaml
+    options:
+      labels:
+        config-type: runtime
+  
+  - name: monitoring-config
+    files:
+      - ./configs/prometheus-rules.yaml
+      - ./configs/alertmanager-config.yaml
+      - ./configs/grafana-dashboards.yaml
+  
+  - name: cost-optimization-config
+    files:
+      - ./configs/cost-limits.yaml
+      - ./configs/resource-thresholds.yaml
+
+secretGenerator:
+  - name: microagents-secrets
+    behavior: merge
+    envs:
+      - ./secrets/database.env
+      - ./secrets/api-keys.env
+      - ./secrets/encryption.env
+    options:
+      labels:
+        secret-type: sensitive
+  
+  - name: backup-credentials
+    envs:
+      - ./secrets/backup.env
+  
+  - name: monitoring-secrets
+    envs:
+      - ./secrets/monitoring.env
+
+# Patches
+patchesStrategicMerge:
+  # High availability patches
+  - patches/deployment-ha-patch.yaml
+  - patches/statefulset-ha-patch.yaml
+  
+  # Resource limits and requests
+  - patches/resource-limits-patch.yaml
+  
+  # Security context
+  - patches/security-context-patch.yaml
+  
+  # Network policies
+  - patches/network-policy-patch.yaml
+  
+  # Auto-scaling configuration
+  - patches/hpa-patch.yaml
+  
+  # Node affinity and anti-affinity
+  - patches/node-affinity-patch.yaml
+  
+  # Pod disruption budget
+  - patches/pdb-patch.yaml
+  
+  # Service mesh configuration
+  - patches/service-mesh-patch.yaml
+  
+  # Monitoring sidecar injection
+  - patches/sidecar-patch.yaml
+  
+  # Backup configuration
+  - patches/backup-patch.yaml
+  
+  # Cost optimization
+  - patches/cost-optimization-patch.yaml
+
+patchesJson6902:
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: microagents-api
+    path: patches/json/readiness-probe.json
+  
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: microagents-api
+    path: patches/json/liveness-probe.json
+  
+  - target:
+      group: networking.k8s.io
+      version: v1
+      kind: Ingress
+      name: microagents-ingress
+    path: patches/json/ingress-annotations.json
+  
+  - target:
+      group: autoscaling
+      version: v2
+      kind: HorizontalPodAutoscaler
+      name: microagents-api-hpa
+    path: patches/json/hpa-metrics.json
+
+# Images to use
+images:
+  - name: microagents-platform
+    newName: registry.prod.microagents.io/platform
+    newTag: v1.0.0-prod
+    digest: sha256:abc123def456...
+  
+  - name: redis
+    newName: bitnami/redis
+    newTag: 7.2-alpine
+  
+  - name: postgres
+    newName: bitnami/postgresql
+    newTag: 15-alpine
+  
+  - name: monitoring-sidecar
+    newName: prom/node-exporter
+    newTag: v1.6.0
+  
+  - name: security-scanner
+    newName: aquasec/trivy
+    newTag: 0.45
+
+# Variables for templating
+vars:
+  - name: CLUSTER_NAME
+    objref:
+      kind: ConfigMap
+      name: cluster-info
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.clusterName
+  
+  - name: REGION
+    objref:
+      kind: ConfigMap
+      name: cluster-info
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.region
+  
+  - name: ENVIRONMENT
+    objref:
+      kind: ConfigMap
+      name: microagents-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.environment
+
+# Configurations
+configurations:
+  - ./kustomizeconfig.yaml
+
+# Generator options
+generatorOptions:
+  disableNameSuffixHash: false
+  labels:
+    environment: production
+    deployment-strategy: blue-green
+  annotations:
+    kustomize.generated.resource: "true"
+    last-applied-configuration: ""
+
+# Replicas configuration (for all deployments)
+replicas:
+  - name: microagents-api
+    count: 6
+  - name: microagents-worker
+    count: 12
+  - name: microagents-scheduler
+    count: 3
+  - name: redis
+    count: 3
+  - name: postgres
+    count: 2
+
+# Validation
+openapi:
+  path: ./schemas/openapi.yaml
+
+# Inventory for tracking
+inventory:
+  type: ConfigMap
+  configMap:
+    name: kustomize-inventory
+    namespace: microagents-prod

@@ -1,0 +1,41 @@
+apiVersion: velero.io/v1
+kind: BackupSchedule
+metadata:
+  name: microagents-daily-backup
+spec:
+  schedule: "0 3 * * *"
+  template:
+    includedNamespaces:
+    - microagents-prod
+    includedResources:
+    - deployments
+    - statefulsets
+    - configmaps
+    - secrets
+    - persistentvolumes
+    - persistentvolumeclaims
+    storageLocation: aws-s3-backup
+    ttl: 720h
+    snapshotVolumes: true
+    volumeSnapshotLocations:
+    - aws-default
+---
+apiVersion: policy.k8s.io/v1
+kind: PodDisruptionBudget
+metadata:
+  name: microagents-api-pdb
+spec:
+  minAvailable: 80%
+  selector:
+    matchLabels:
+      app: microagents-api
+---
+apiVersion: policy.k8s.io/v1
+kind: PodDisruptionBudget
+metadata:
+  name: microagents-worker-pdb
+spec:
+  minAvailable: 75%
+  selector:
+    matchLabels:
+      app: microagents-worker

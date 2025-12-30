@@ -1,0 +1,90 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: microagents-dev
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, PUT, POST, DELETE, PATCH, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "*"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Environment: development";
+      more_set_headers "X-Debug-Mode: enabled";
+    cert-manager.io/cluster-issuer: "selfsigned-issuer"
+    kubernetes.io/ingress.class: "nginx"
+spec:
+  rules:
+  - host: microagents-dev.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: microagents-api
+            port:
+              number: 8000
+      - path: /console
+        pathType: Prefix
+        backend:
+          service:
+            name: microagents-api
+            port:
+              number: 4000
+      - path: /debug
+        pathType: Prefix
+        backend:
+          service:
+            name: microagents-api
+            port:
+              number: 4001
+      - path: /metrics
+        pathType: Prefix
+        backend:
+          service:
+            name: microagents-api
+            port:
+              number: 9090
+      - path: /docs
+        pathType: Prefix
+        backend:
+          service:
+            name: microagents-api
+            port:
+              number: 8000
+      - path: /api/v1
+        pathType: Prefix
+        backend:
+          service:
+            name: microagents-api
+            port:
+              number: 8000
+  - host: grafana-dev.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: grafana
+            port:
+              number: 3000
+  - host: prometheus-dev.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: prometheus
+            port:
+              number: 9090
+  tls:
+  - hosts:
+    - microagents-dev.local
+    - grafana-dev.local
+    - prometheus-dev.local
+    secretName: microagents-dev-tls

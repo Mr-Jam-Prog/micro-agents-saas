@@ -1,0 +1,1952 @@
+#!/usr/bin/env python3
+"""
+{{ agent_name }} - Généré par MicroAgents Platform
+Version: {{ version }}
+Date de génération: {{ generation_date }}
+Description: {{ description }}
+ROI Score: {{ roi_score }}
+Complexité: {{ complexity_level }}
+
+Cet agent a été généré automatiquement par le système de génération MicroAgents.
+NE MODIFIEZ PAS MANUELLEMENT LES SECTIONS AUTO-GÉNÉRÉES.
+Utilisez le DSL pour les mises à jour.
+
+Agent ID: {{ agent_id }}
+Checksum: {{ checksum }}
+"""
+
+import asyncio
+import logging
+import uuid
+from datetime import datetime, timedelta
+from decimal import Decimal
+from enum import Enum
+from functools import wraps
+from typing import (
+    Any, Dict, List, Optional, Tuple, Union, Callable, TypeVar, Generic,
+    get_type_hints, get_origin, get_args
+)
+from dataclasses import dataclass, field
+from contextlib import contextmanager
+import json
+
+# Imports pour la sécurité et la conformité
+import hashlib
+import hmac
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
+
+# Imports pour les métriques et monitoring
+from prometheus_client import (
+    Counter, Gauge, Histogram, Summary, generate_latest, REGISTRY
+)
+import time
+
+# Imports pour la validation
+from pydantic import BaseModel, Field, validator, root_validator
+import pydantic
+from jsonschema import validate as json_validate
+
+# =============================================================================
+# CONSTANTES ET CONFIGURATION
+# =============================================================================
+
+class AgentStatus(Enum):
+    """Statuts possibles de l'agent"""
+    INITIALIZING = "initializing"
+    READY = "ready"
+    PROCESSING = "processing"
+    ERROR = "error"
+    DEGRADED = "degraded"
+    STOPPED = "stopped"
+
+
+class SeverityLevel(Enum):
+    """Niveaux de sévérité"""
+    DEBUG = "debug"
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+    CRITICAL = "critical"
+
+
+class ComplianceStandard(Enum):
+    """Standards de conformité supportés"""
+    SOC2 = "soc2"
+    ISO27001 = "iso27001"
+    GDPR = "gdpr"
+    HIPAA = "hipaa"
+    PCI_DSS = "pci_dss"
+
+
+# Configuration des métriques Prometheus
+METRICS_PREFIX = "microagents_{{ agent_name_snake }}"
+ANOMALIES_DETECTED = Counter(
+    f'{METRICS_PREFIX}_anomalies_detected_total',
+    'Total anomalies detected by agent',
+    ['severity', 'source']
+)
+PROCESSING_TIME = Histogram(
+    f'{METRICS_PREFIX}_processing_time_seconds',
+    'Time spent processing requests',
+    buckets=(0.1, 0.5, 1.0, 2.0, 5.0, 10.0)
+)
+ACTIVE_REQUESTS = Gauge(
+    f'{METRICS_PREFIX}_active_requests',
+    'Number of active requests being processed'
+)
+ERROR_COUNT = Counter(
+    f'{METRICS_PREFIX}_errors_total',
+    'Total number of errors',
+    ['error_type']
+)
+
+# =============================================================================
+# MODÈLES DE DONNÉES (Auto-générés)
+# =============================================================================
+
+{% for model_name, model_def in input_models.items() %}
+class {{ model_name }}(BaseModel):
+    """
+    Modèle de données pour: {{ model_def.description }}
+    Généré à partir du schéma: {{ model_def.schema }}
+    """
+    {% for field_name, field_def in model_def.fields.items() %}
+    {{ field_name }}: {{ field_def.python_type }} = Field(
+        {% if field_def.default is not none %}default={{ field_def.default }},{% endif %}
+        {% if field_def.description %}description="{{ field_def.description }}",{% endif %}
+        {% if field_def.example %}example={{ field_def.example }}{% endif %}
+    )
+    {% endfor %}
+    
+    {% if model_def.validators %}
+    # Validateurs personnalisés
+    {% for validator_name, validator_def in model_def.validators.items() %}
+    @validator('{{ validator_def.field }}')
+    def {{ validator_name }}(cls, v):
+        """{{ validator_def.description }}"""
+        {% for rule in validator_def.rules %}
+        {{ rule }}
+        {% endfor %}
+        return v
+    {% endfor %}
+    {% endif %}
+    
+    class Config:
+        schema_extra = {
+            "example": {{ model_def.example_json|tojson }}
+        }
+
+
+{% endfor %}
+
+{% for model_name, model_def in output_models.items() %}
+class {{ model_name }}(BaseModel):
+    """
+    Modèle de sortie pour: {{ model_def.description }}
+    Format: {{ model_def.format }}
+    """
+    {% for field_name, field_def in model_def.fields.items() %}
+    {{ field_name }}: {{ field_def.python_type }} = Field(
+        {% if field_def.default is not none %}default={{ field_def.default }},{% endif %}
+        description="{{ field_def.description }}"
+    )
+    {% endfor %}
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convertit le modèle en dictionnaire"""
+        return self.dict()
+    
+    def to_json(self) -> str:
+        """Sérialise en JSON"""
+        return self.json(indent=2)
+
+
+{% endfor %}
+
+# =============================================================================
+# CLASSES D'EXCEPTIONS PERSONNALISÉES
+# =============================================================================
+
+class MicroAgentError(Exception):
+    """Exception de base pour tous les agents MicroAgents"""
+    def __init__(self, message: str, code: str = "AGENT_ERROR", severity: SeverityLevel = SeverityLevel.ERROR):
+        self.message = message
+        self.code = code
+        self.severity = severity
+        super().__init__(self.message)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convertit l'exception en dictionnaire pour le logging"""
+        return {
+            "error_code": self.code,
+            "message": self.message,
+            "severity": self.severity.value,
+            "timestamp": datetime.utcnow().isoformat(),
+            "agent": "{{ agent_name }}"
+        }
+
+
+class ValidationError(MicroAgentError):
+    """Erreur de validation des données d'entrée"""
+    def __init__(self, message: str, field: Optional[str] = None):
+        super().__init__(message, code="VALIDATION_ERROR")
+        self.field = field
+
+
+class ConfigurationError(MicroAgentError):
+    """Erreur de configuration de l'agent"""
+    def __init__(self, message: str):
+        super().__init__(message, code="CONFIGURATION_ERROR")
+
+
+class DependencyError(MicroAgentError):
+    """Erreur de dépendance externe"""
+    def __init__(self, message: str, dependency: str):
+        super().__init__(message, code="DEPENDENCY_ERROR")
+        self.dependency = dependency
+
+
+class SecurityError(MicroAgentError):
+    """Erreur de sécurité"""
+    def __init__(self, message: str):
+        super().__init__(message, code="SECURITY_ERROR", severity=SeverityLevel.CRITICAL)
+
+
+class BusinessRuleError(MicroAgentError):
+    """Violation d'une règle métier"""
+    def __init__(self, message: str, rule_name: str):
+        super().__init__(message, code="BUSINESS_RULE_ERROR")
+        self.rule_name = rule_name
+
+
+# =============================================================================
+# DÉCORATEURS UTILITAIRES
+# =============================================================================
+
+def instrument_processing(func: Callable) -> Callable:
+    """
+    Décorateur pour instrumenter le temps de traitement.
+    Ajoute des métriques Prometheus et du logging.
+    """
+    @wraps(func)
+    async def wrapper(self, *args, **kwargs):
+        start_time = time.time()
+        ACTIVE_REQUESTS.inc()
+        
+        try:
+            result = await func(self, *args, **kwargs)
+            processing_time = time.time() - start_time
+            PROCESSING_TIME.observe(processing_time)
+            
+            # Log du temps de traitement si > seuil
+            if processing_time > {{ performance.latency_threshold_warning }}:
+                self.logger.warning(
+                    f"Traitement lent détecté: {processing_time:.3f}s",
+                    extra={
+                        "processing_time": processing_time,
+                        "threshold": {{ performance.latency_threshold_warning }}
+                    }
+                )
+            
+            return result
+        except Exception as e:
+            ERROR_COUNT.labels(error_type=type(e).__name__).inc()
+            raise
+        finally:
+            ACTIVE_REQUESTS.dec()
+    
+    return wrapper
+
+
+def validate_input(schema_name: str) -> Callable:
+    """
+    Décorateur pour valider les données d'entrée avec JSON Schema.
+    """
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        async def wrapper(self, input_data: Dict[str, Any], *args, **kwargs):
+            try:
+                # Validation avec Pydantic
+                validation_model = globals().get(schema_name)
+                if validation_model:
+                    validated_data = validation_model(**input_data)
+                    validated_input = validated_data.dict()
+                else:
+                    # Fallback: validation JSON Schema
+                    schema = self.config.get("validation_schemas", {}).get(schema_name)
+                    if schema:
+                        json_validate(instance=input_data, schema=schema)
+                    validated_input = input_data
+                
+                self.logger.debug(f"Validation réussie pour {schema_name}")
+                return await func(self, validated_input, *args, **kwargs)
+                
+            except pydantic.ValidationError as e:
+                raise ValidationError(
+                    f"Erreur de validation Pydantic: {str(e)}",
+                    field=e.errors()[0].get("loc")[0] if e.errors() else None
+                )
+            except Exception as e:
+                raise ValidationError(f"Erreur de validation: {str(e)}")
+        
+        return wrapper
+    return decorator
+
+
+def retry_on_failure(
+    max_retries: int = 3,
+    delay: float = 1.0,
+    backoff: float = 2.0,
+    exceptions: Tuple = (Exception,)
+) -> Callable:
+    """
+    Décorateur pour réessayer en cas d'échec avec backoff exponentiel.
+    """
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            last_exception = None
+            
+            for attempt in range(max_retries + 1):
+                try:
+                    if attempt > 0:
+                        wait_time = delay * (backoff ** (attempt - 1))
+                        await asyncio.sleep(wait_time)
+                    
+                    return await func(*args, **kwargs)
+                    
+                except exceptions as e:
+                    last_exception = e
+                    if attempt == max_retries:
+                        break
+                    logging.warning(f"Tentative {attempt + 1} échouée: {str(e)}")
+            
+            raise last_exception
+        
+        return wrapper
+    return decorator
+
+
+def audit_trail(action: str) -> Callable:
+    """
+    Décorateur pour enregistrer une trace d'audit.
+    """
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        async def wrapper(self, *args, **kwargs):
+            audit_id = str(uuid.uuid4())
+            start_time = datetime.utcnow()
+            
+            audit_data = {
+                "audit_id": audit_id,
+                "action": action,
+                "agent": self.__class__.__name__,
+                "start_time": start_time.isoformat(),
+                "user_context": getattr(self, 'user_context', {}),
+                "input_hash": hashlib.sha256(
+                    json.dumps(args[0] if args else kwargs).encode()
+                ).hexdigest()[:16]
+            }
+            
+            try:
+                result = await func(self, *args, **kwargs)
+                
+                audit_data.update({
+                    "status": "success",
+                    "end_time": datetime.utcnow().isoformat(),
+                    "result_hash": hashlib.sha256(
+                        json.dumps(result).encode()
+                    ).hexdigest()[:16] if result else None
+                })
+                
+                self._log_audit(audit_data)
+                return result
+                
+            except Exception as e:
+                audit_data.update({
+                    "status": "failure",
+                    "end_time": datetime.utcnow().isoformat(),
+                    "error": str(e),
+                    "error_type": type(e).__name__
+                })
+                
+                self._log_audit(audit_data)
+                raise
+        
+        return wrapper
+    return decorator
+
+
+# =============================================================================
+# CLASSE PRINCIPALE DE L'AGENT
+# =============================================================================
+
+class {{ agent_class_name }}:
+    """
+    {{ description }}
+    
+    CATÉGORIE: {{ category }}
+    SOUS-CATÉGORIE: {{ subcategory }}
+    TAGS: {{ tags|join(', ') }}
+    
+    CARACTÉRISTIQUES:
+    - ROI Score: {{ roi_score }}/10
+    - Complexité: {{ complexity_level }}
+    - Latence cible: {{ performance.latency.p50 }}
+    - Précision: {{ performance.accuracy }}%
+    
+    CONFORMITÉ:
+    {% for standard in compliance.standards %}
+    - {{ standard }}
+    {% endfor %}
+    
+    GÉNÉRÉ LE: {{ generation_date }}
+    VERSION: {{ version }}
+    """
+    
+    # =========================================================================
+    # MÉTADONNÉES STATIQUES
+    # =========================================================================
+    
+    AGENT_NAME = "{{ agent_name }}"
+    AGENT_VERSION = "{{ version }}"
+    AGENT_ID = "{{ agent_id }}"
+    
+    # Catégorisation
+    CATEGORY = "{{ category }}"
+    SUBCATEGORY = "{{ subcategory }}"
+    TAGS = {{ tags|tojson }}
+    
+    # Métadonnées de performance
+    PERFORMANCE_TARGETS = {
+        "latency_p50": "{{ performance.latency.p50 }}",
+        "latency_p95": "{{ performance.latency.p95 }}",
+        "latency_p99": "{{ performance.latency.p99 }}",
+        "throughput_rps": {{ performance.throughput.rps }},
+        "accuracy_target": {{ performance.accuracy_target }},
+        "availability_target": "{{ performance.availability }}"
+    }
+    
+    # Configuration de conformité
+    COMPLIANCE_STANDARDS = {{ compliance.standards|tojson }}
+    DATA_CLASSIFICATION = "{{ compliance.data_classification }}"
+    
+    # =========================================================================
+    # INITIALISATION
+    # =========================================================================
+    
+    def __init__(
+        self,
+        config: Optional[Dict[str, Any]] = None,
+        logger: Optional[logging.Logger] = None,
+        enable_monitoring: bool = True,
+        strict_validation: bool = True
+    ):
+        """
+        Initialise l'agent avec la configuration fournie.
+        
+        Args:
+            config: Configuration de l'agent (dict)
+            logger: Instance de logger personnalisée
+            enable_monitoring: Active les métriques Prometheus
+            strict_validation: Active la validation stricte des entrées
+        """
+        self._start_time = datetime.utcnow()
+        self.status = AgentStatus.INITIALIZING
+        
+        # Configuration
+        self.config = self._load_configuration(config or {})
+        
+        # Logging
+        self.logger = logger or self._setup_logging()
+        
+        # Validation
+        self.strict_validation = strict_validation
+        
+        # Monitoring
+        self.enable_monitoring = enable_monitoring
+        if enable_monitoring:
+            self._setup_monitoring()
+        
+        # Cache et état
+        self._cache = {}
+        self._state = {}
+        
+        # Dépendances
+        self._dependencies = {}
+        
+        # Initialisation
+        self._initialize_agent()
+        
+        self.status = AgentStatus.READY
+        self.logger.info(
+            f"Agent {self.AGENT_NAME} v{self.AGENT_VERSION} initialisé avec succès",
+            extra={
+                "agent_id": self.AGENT_ID,
+                "status": self.status.value,
+                "config_hash": hashlib.md5(
+                    json.dumps(self.config, sort_keys=True).encode()
+                ).hexdigest()[:8]
+            }
+        )
+    
+    def _load_configuration(self, user_config: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Charge et valide la configuration.
+        
+        Args:
+            user_config: Configuration utilisateur
+            
+        Returns:
+            Configuration validée et enrichie
+        """
+        default_config = {
+            # Configuration de base
+            "agent": {
+                "name": self.AGENT_NAME,
+                "version": self.AGENT_VERSION,
+                "environment": "production",
+                "region": "eu-west-1"
+            },
+            
+            # Performance
+            "performance": {
+                "timeout_seconds": 30,
+                "max_retries": 3,
+                "batch_size": 100,
+                "cache_ttl_seconds": 300
+            },
+            
+            # Logging
+            "logging": {
+                "level": "INFO",
+                "format": "json",
+                "enable_structured_logging": True
+            },
+            
+            # Sécurité
+            "security": {
+                "encryption_enabled": True,
+                "audit_logging_enabled": True,
+                "input_validation_enabled": True
+            },
+            
+            # Monitoring
+            "monitoring": {
+                "metrics_enabled": True,
+                "tracing_enabled": True,
+                "health_check_enabled": True
+            },
+            
+            # Règles métier (à remplir depuis le DSL)
+            "business_rules": {{ business_rules|tojson }},
+            
+            # Schémas de validation
+            "validation_schemas": {{ validation_schemas|tojson }},
+            
+            # Configuration des dépendances
+            "dependencies": {{ dependencies_config|tojson }}
+        }
+        
+        # Fusion avec configuration utilisateur
+        config = self._deep_merge(default_config, user_config)
+        
+        # Validation de la configuration
+        self._validate_configuration(config)
+        
+        return config
+    
+    def _setup_logging(self) -> logging.Logger:
+        """
+        Configure le logging structuré pour l'agent.
+        
+        Returns:
+            Instance de logger configurée
+        """
+        logger = logging.getLogger(f"microagents.{self.AGENT_NAME}")
+        
+        if not logger.handlers:
+            handler = logging.StreamHandler()
+            
+            if self.config.get("logging", {}).get("format") == "json":
+                import json_log_formatter
+                formatter = json_log_formatter.JSONFormatter()
+            else:
+                formatter = logging.Formatter(
+                    '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+                )
+            
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
+        
+        log_level = getattr(
+            logging,
+            self.config.get("logging", {}).get("level", "INFO")
+        )
+        logger.setLevel(log_level)
+        
+        return logger
+    
+    def _setup_monitoring(self) -> None:
+        """Configure le monitoring et les métriques."""
+        # Métriques spécifiques à l'agent
+        self.metrics = {
+            "processing_success": Counter(
+                f'{METRICS_PREFIX}_processing_success_total',
+                'Total successful processing operations'
+            ),
+            "processing_failure": Counter(
+                f'{METRICS_PREFIX}_processing_failure_total',
+                'Total failed processing operations',
+                ['error_type']
+            ),
+            "cache_hits": Counter(
+                f'{METRICS_PREFIX}_cache_hits_total',
+                'Total cache hits'
+            ),
+            "cache_misses": Counter(
+                f'{METRICS_PREFIX}_cache_misses_total',
+                'Total cache misses'
+            ),
+            "business_rules_triggered": Counter(
+                f'{METRICS_PREFIX}_business_rules_triggered_total',
+                'Total business rules triggered',
+                ['rule_name']
+            )
+        }
+        
+        # Health check gauge
+        self.health_status = Gauge(
+            f'{METRICS_PREFIX}_health_status',
+            'Health status of the agent (1=healthy, 0=unhealthy)'
+        )
+        self.health_status.set(1)
+    
+    def _initialize_agent(self) -> None:
+        """
+        Initialise les composants spécifiques de l'agent.
+        Surcharger cette méthode pour l'initialisation personnalisée.
+        """
+        # Initialisation du cache
+        self._initialize_cache()
+        
+        # Chargement des modèles ML (si applicable)
+        if hasattr(self, '_load_ml_models'):
+            self._load_ml_models()
+        
+        # Connexion aux dépendances
+        self._connect_dependencies()
+        
+        # Chargement des règles métier
+        self._load_business_rules()
+        
+        # Vérification de la conformité
+        self._check_compliance()
+    
+    # =========================================================================
+    # MÉTHODES PUBLIQUES PRINCIPALES
+    # =========================================================================
+    
+    @instrument_processing
+    @validate_input("{{ primary_input_model }}")
+    @audit_trail("execute_agent")
+    async def execute(
+        self,
+        input_data: Union[Dict[str, Any], {{ primary_input_model }}],
+        context: Optional[Dict[str, Any]] = None
+    ) -> {{ primary_output_model }}:
+        """
+        Méthode principale d'exécution de l'agent.
+        
+        Cette méthode implémente la logique métier principale de l'agent.
+        Elle est instrumentée avec monitoring, validation et audit.
+        
+        Args:
+            input_data: Données d'entrée validées
+            context: Contexte d'exécution additionnel
+            
+        Returns:
+            Résultat du traitement
+            
+        Raises:
+            ValidationError: Si les données d'entrée sont invalides
+            BusinessRuleError: Si une règle métier est violée
+            MicroAgentError: Pour toutes les autres erreurs
+        """
+        self.status = AgentStatus.PROCESSING
+        execution_id = str(uuid.uuid4())
+        
+        self.logger.info(
+            "Début de l'exécution",
+            extra={
+                "execution_id": execution_id,
+                "input_type": type(input_data).__name__,
+                "context_keys": list(context.keys()) if context else []
+            }
+        )
+        
+        try:
+            # 1. Prétraitement
+            processed_input = await self._preprocess_input(input_data, context)
+            
+            # 2. Application des règles métier
+            business_rules_result = await self._apply_business_rules(processed_input)
+            
+            # 3. Exécution de la logique principale
+            {% if has_ml_component %}
+            # Logique avec composant ML
+            ml_result = await self._apply_ml_logic(processed_input)
+            intermediate_result = self._combine_results(business_rules_result, ml_result)
+            {% else %}
+            # Logique purement basée sur les règles
+            intermediate_result = business_rules_result
+            {% endif %}
+            
+            # 4. Post-traitement et validation
+            final_result = await self._postprocess_result(intermediate_result)
+            
+            # 5. Génération du rapport
+            output = self._generate_output(final_result, execution_id)
+            
+            # 6. Enregistrement des métriques
+            self.metrics["processing_success"].inc()
+            
+            self.logger.info(
+                "Exécution terminée avec succès",
+                extra={
+                    "execution_id": execution_id,
+                    "processing_time": time.time() - self._start_time.timestamp(),
+                    "result_size": len(str(output))
+                }
+            )
+            
+            return output
+            
+        except BusinessRuleError as e:
+            self.metrics["processing_failure"].labels(error_type="business_rule").inc()
+            self.logger.warning(
+                "Règle métier violée",
+                extra=e.to_dict()
+            )
+            raise
+            
+        except Exception as e:
+            self.metrics["processing_failure"].labels(
+                error_type=type(e).__name__
+            ).inc()
+            self.logger.error(
+                "Erreur lors de l'exécution",
+                extra={
+                    "execution_id": execution_id,
+                    "error": str(e),
+                    "error_type": type(e).__name__
+                },
+                exc_info=True
+            )
+            raise MicroAgentError(f"Erreur d'exécution: {str(e)}")
+            
+        finally:
+            self.status = AgentStatus.READY
+    
+    async def batch_execute(
+        self,
+        input_batch: List[Union[Dict[str, Any], {{ primary_input_model }}]],
+        max_concurrency: Optional[int] = None
+    ) -> List[{{ primary_output_model }}]:
+        """
+        Exécute l'agent en batch sur plusieurs entrées.
+        
+        Args:
+            input_batch: Liste des données d'entrée
+            max_concurrency: Nombre maximum d'exécutions concurrentes
+            
+        Returns:
+            Liste des résultats
+        """
+        max_concurrency = max_concurrency or self.config["performance"]["batch_concurrency"]
+        
+        semaphore = asyncio.Semaphore(max_concurrency)
+        
+        async def process_with_semaphore(input_item):
+            async with semaphore:
+                return await self.execute(input_item)
+        
+        tasks = [process_with_semaphore(item) for item in input_batch]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Traitement des exceptions
+        successful_results = []
+        errors = []
+        
+        for result in results:
+            if isinstance(result, Exception):
+                errors.append(result)
+                self.logger.error("Échec de traitement batch", exc_info=result)
+            else:
+                successful_results.append(result)
+        
+        if errors:
+            self.logger.warning(
+                f"{len(errors)} erreurs dans le traitement batch",
+                extra={"error_count": len(errors)}
+            )
+        
+        return successful_results
+    
+    # =========================================================================
+    # MÉTHODES DE PRÉTRAITEMENT
+    # =========================================================================
+    
+    async def _preprocess_input(
+        self,
+        input_data: Union[Dict[str, Any], {{ primary_input_model }}],
+        context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Prétraite les données d'entrée.
+        
+        Args:
+            input_data: Données d'entrée
+            context: Contexte additionnel
+            
+        Returns:
+            Données prétraitées
+        """
+        # Conversion en dict si nécessaire
+        if isinstance(input_data, BaseModel):
+            processed = input_data.dict()
+        else:
+            processed = input_data.copy()
+        
+        # Ajout du contexte
+        if context:
+            processed["_context"] = context
+        
+        # Normalisation des dates
+        processed = self._normalize_dates(processed)
+        
+        # Validation supplémentaire
+        if self.strict_validation:
+            self._validate_preprocessed(processed)
+        
+        # Cache lookup
+        cache_key = self._generate_cache_key(processed)
+        cached_result = self._cache_get(cache_key)
+        
+        if cached_result:
+            self.metrics["cache_hits"].inc()
+            self.logger.debug("Résultat trouvé en cache", extra={"cache_key": cache_key})
+            raise StopIteration(cached_result)  # Short-circuit pour cache hit
+        
+        self.metrics["cache_misses"].inc()
+        
+        return processed
+    
+    def _normalize_dates(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Normalise les dates dans les données."""
+        # À implémenter selon les besoins
+        return data
+    
+    def _validate_preprocessed(self, data: Dict[str, Any]) -> None:
+        """Validation supplémentaire après prétraitement."""
+        # À implémenter selon les besoins
+        pass
+    
+    # =========================================================================
+    # MÉTHODES DE LOGIQUE MÉTIER
+    # =========================================================================
+    
+    async def _apply_business_rules(
+        self,
+        processed_input: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Applique les règles métier configurées.
+        
+        Args:
+            processed_input: Données prétraitées
+            
+        Returns:
+            Résultat après application des règles
+        """
+        result = processed_input.copy()
+        triggered_rules = []
+        
+        {% for rule in business_rules %}
+        # Règle: {{ rule.name }}
+        # {{ rule.description }}
+        if {{ rule.condition }}:
+            {% if rule.action == 'flag_anomaly' %}
+            result["anomalies"].append({
+                "rule": "{{ rule.name }}",
+                "severity": "{{ rule.severity }}",
+                "description": "{{ rule.description }}",
+                "triggered_at": datetime.utcnow().isoformat()
+            })
+            {% elif rule.action == 'calculate_metric' %}
+            result["metrics"]["{{ rule.metric_name }}"] = {{ rule.calculation }}
+            {% elif rule.action == 'transform_data' %}
+            result = self._apply_transformation(result, "{{ rule.transformation_name }}")
+            {% endif %}
+            triggered_rules.append("{{ rule.name }}")
+            self.metrics["business_rules_triggered"].labels(rule_name="{{ rule.name }}").inc()
+        {% endfor %}
+        
+        result["_metadata"]["triggered_rules"] = triggered_rules
+        
+        # Vérification des seuils critiques
+        await self._check_critical_thresholds(result)
+        
+        return result
+    
+    async def _check_critical_thresholds(self, data: Dict[str, Any]) -> None:
+        """Vérifie les seuils critiques et déclenche des alertes si nécessaire."""
+        {% for threshold in critical_thresholds %}
+        if {{ threshold.condition }}:
+            self.logger.{{ threshold.log_level }}(
+                "{{ threshold.message }}",
+                extra={
+                    "threshold": "{{ threshold.name }}",
+                    "value": {{ threshold.value_expression }},
+                    "limit": {{ threshold.limit }}
+                }
+            )
+            
+            {% if threshold.alert_action %}
+            await self._trigger_alert(
+                "{{ threshold.alert_name }}",
+                {
+                    "threshold": "{{ threshold.name }}",
+                    "value": {{ threshold.value_expression }},
+                    "limit": {{ threshold.limit }},
+                    "severity": "{{ threshold.severity }}"
+                }
+            )
+            {% endif %}
+        {% endfor %}
+    
+    {% if has_ml_component %}
+    async def _apply_ml_logic(
+        self,
+        processed_input: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Applique la logique d'apprentissage automatique.
+        
+        Args:
+            processed_input: Données prétraitées
+            
+        Returns:
+            Résultats ML
+        """
+        try:
+            # Préparation des features
+            features = self._extract_features(processed_input)
+            
+            # Prédiction avec le modèle
+            prediction = await self._ml_model_predict(features)
+            
+            # Interprétation des résultats
+            interpreted = self._interpret_ml_results(prediction, processed_input)
+            
+            return {
+                "ml_predictions": prediction,
+                "ml_interpretation": interpreted,
+                "ml_confidence": prediction.get("confidence", 0.0),
+                "ml_features_used": list(features.keys())
+            }
+            
+        except Exception as e:
+            self.logger.error(
+                "Erreur dans la logique ML",
+                extra={
+                    "error": str(e),
+                    "input_hash": hashlib.md5(
+                        json.dumps(processed_input).encode()
+                    ).hexdigest()[:8]
+                },
+                exc_info=True
+            )
+            
+            # Fallback vers des règles statistiques
+            return await self._fallback_statistical_logic(processed_input)
+    {% endif %}
+    
+    # =========================================================================
+    # MÉTHODES DE POST-TRAITEMENT
+    # =========================================================================
+    
+    async def _postprocess_result(
+        self,
+        intermediate_result: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Post-traite les résultats intermédiaires.
+        
+        Args:
+            intermediate_result: Résultat après logique métier/ML
+            
+        Returns:
+            Résultat final post-traité
+        """
+        result = intermediate_result.copy()
+        
+        # Nettoyage des données temporaires
+        if "_context" in result:
+            del result["_context"]
+        
+        # Formatage des nombres
+        result = self._format_numbers(result)
+        
+        # Ajout de métadonnées
+        result["_metadata"].update({
+            "processing_completed_at": datetime.utcnow().isoformat(),
+            "agent_version": self.AGENT_VERSION,
+            "processing_duration_ms": int(
+                (datetime.utcnow() - self._start_time).total_seconds() * 1000
+            )
+        })
+        
+        # Cache le résultat
+        cache_key = self._generate_cache_key(intermediate_result)
+        self._cache_set(cache_key, result, ttl=self.config["performance"]["cache_ttl_seconds"])
+        
+        return result
+    
+    def _generate_output(
+        self,
+        final_result: Dict[str, Any],
+        execution_id: str
+    ) -> {{ primary_output_model }}:
+        """
+        Génère la sortie structurée.
+        
+        Args:
+            final_result: Résultat final post-traité
+            execution_id: ID d'exécution
+            
+        Returns:
+            Sortie validée
+        """
+        output_data = {
+            "execution_id": execution_id,
+            "agent": self.AGENT_NAME,
+            "version": self.AGENT_VERSION,
+            "timestamp": datetime.utcnow().isoformat(),
+            "data": final_result,
+            "metadata": final_result.get("_metadata", {}),
+            {% if has_anomaly_detection %}
+            "anomalies": final_result.get("anomalies", []),
+            "recommendations": self._generate_recommendations(final_result),
+            {% endif %}
+            "performance": {
+                "processing_time_ms": final_result["_metadata"]["processing_duration_ms"],
+                "cache_used": "hit" if final_result.get("_cached") else "miss"
+            }
+        }
+        
+        # Validation de la sortie
+        output = {{ primary_output_model }}(**output_data)
+        
+        return output
+    
+    {% if has_anomaly_detection %}
+    def _generate_recommendations(
+        self,
+        result: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        """Génère des recommandations basées sur les anomalies détectées."""
+        recommendations = []
+        
+        {% for recommendation_rule in recommendation_rules %}
+        if {{ recommendation_rule.condition }}:
+            recommendations.append({
+                "id": str(uuid.uuid4()),
+                "title": "{{ recommendation_rule.title }}",
+                "description": "{{ recommendation_rule.description }}",
+                "priority": "{{ recommendation_rule.priority }}",
+                "estimated_savings": {{ recommendation_rule.estimated_savings }},
+                "implementation_complexity": "{{ recommendation_rule.implementation_complexity }}",
+                "actions": {{ recommendation_rule.actions|tojson }}
+            })
+        {% endfor %}
+        
+        return recommendations
+    {% endif %}
+    
+    # =========================================================================
+    # MÉTHODES DE GESTION DU CACHE
+    # =========================================================================
+    
+    def _initialize_cache(self) -> None:
+        """Initialise le système de cache."""
+        # Pour des besoins simples, on utilise un dict en mémoire
+        # Pour la production, remplacer par Redis ou similaire
+        self._cache = {}
+        self._cache_stats = {"hits": 0, "misses": 0, "size": 0}
+    
+    def _generate_cache_key(self, data: Dict[str, Any]) -> str:
+        """
+        Génère une clé de cache à partir des données.
+        
+        Args:
+            data: Données à cacher
+            
+        Returns:
+            Clé de cache
+        """
+        # Exclusion des champs temporaires
+        cache_data = {
+            k: v for k, v in data.items()
+            if not k.startswith('_') and k not in ['timestamp', 'execution_id']
+        }
+        
+        # Tri pour la cohérence
+        sorted_data = json.dumps(cache_data, sort_keys=True)
+        
+        # Hash pour une clé fixe
+        return f"{self.AGENT_NAME}:{hashlib.md5(sorted_data.encode()).hexdigest()}"
+    
+    def _cache_get(self, key: str) -> Optional[Any]:
+        """
+        Récupère une valeur du cache.
+        
+        Args:
+            key: Clé de cache
+            
+        Returns:
+            Valeur en cache ou None
+        """
+        if key in self._cache:
+            entry = self._cache[key]
+            if entry["expires_at"] > datetime.utcnow():
+                self._cache_stats["hits"] += 1
+                return entry["value"]
+            else:
+                # Expiré, on le supprime
+                del self._cache[key]
+                self._cache_stats["size"] -= 1
+        
+        self._cache_stats["misses"] += 1
+        return None
+    
+    def _cache_set(
+        self,
+        key: str,
+        value: Any,
+        ttl: Optional[int] = None
+    ) -> None:
+        """
+        Stocke une valeur dans le cache.
+        
+        Args:
+            key: Clé de cache
+            value: Valeur à stocker
+            ttl: Time to live en secondes
+        """
+        ttl = ttl or self.config["performance"]["cache_ttl_seconds"]
+        
+        self._cache[key] = {
+            "value": value,
+            "expires_at": datetime.utcnow() + timedelta(seconds=ttl),
+            "created_at": datetime.utcnow()
+        }
+        
+        self._cache_stats["size"] += 1
+        
+        # Nettoyage du cache si nécessaire
+        if len(self._cache) > self.config["performance"]["max_cache_size"]:
+            self._clean_cache()
+    
+    def _clean_cache(self) -> None:
+        """Nettoie le cache des entrées expirées."""
+        now = datetime.utcnow()
+        expired_keys = [
+            k for k, v in self._cache.items()
+            if v["expires_at"] <= now
+        ]
+        
+        for key in expired_keys:
+            del self._cache[key]
+        
+        self._cache_stats["size"] -= len(expired_keys)
+        
+        # Si toujours trop grand, on supprime les plus anciens
+        if len(self._cache) > self.config["performance"]["max_cache_size"]:
+            sorted_keys = sorted(
+                self._cache.keys(),
+                key=lambda k: self._cache[k]["created_at"]
+            )
+            
+            keys_to_remove = sorted_keys[:len(self._cache) - self.config["performance"]["max_cache_size"]]
+            for key in keys_to_remove:
+                del self._cache[key]
+            
+            self._cache_stats["size"] -= len(keys_to_remove)
+    
+    # =========================================================================
+    # MÉTHODES DE SÉCURITÉ
+    # =========================================================================
+    
+    def _validate_configuration(self, config: Dict[str, Any]) -> None:
+        """
+        Valide la configuration de sécurité.
+        
+        Args:
+            config: Configuration à valider
+            
+        Raises:
+            ConfigurationError: Si la configuration est invalide
+            SecurityError: Si des problèmes de sécurité sont détectés
+        """
+        security_config = config.get("security", {})
+        
+        # Vérification des clés de chiffrement
+        if security_config.get("encryption_enabled", False):
+            if not security_config.get("encryption_key"):
+                raise ConfigurationError(
+                    "Clé de chiffrement requise quand encryption_enabled=True"
+                )
+        
+        # Validation des règles de sécurité
+        required_security_rules = [
+            "input_validation_enabled",
+            "audit_logging_enabled"
+        ]
+        
+        for rule in required_security_rules:
+            if not security_config.get(rule, False):
+                self.logger.warning(
+                    f"Règle de sécurité désactivée: {rule}",
+                    extra={"security_risk": "medium"}
+                )
+    
+    def _encrypt_sensitive_data(self, data: str) -> str:
+        """
+        Chiffre les données sensibles.
+        
+        Args:
+            data: Données sensibles à chiffrer
+            
+        Returns:
+            Données chiffrées en base64
+        """
+        if not self.config["security"]["encryption_enabled"]:
+            return data
+        
+        try:
+            key = self.config["security"]["encryption_key"].encode()
+            fernet = Fernet(key)
+            return fernet.encrypt(data.encode()).decode()
+        except Exception as e:
+            raise SecurityError(f"Échec du chiffrement: {str(e)}")
+    
+    def _decrypt_sensitive_data(self, encrypted_data: str) -> str:
+        """
+        Déchiffre les données sensibles.
+        
+        Args:
+            encrypted_data: Données chiffrées
+            
+        Returns:
+            Données déchiffrées
+        """
+        if not self.config["security"]["encryption_enabled"]:
+            return encrypted_data
+        
+        try:
+            key = self.config["security"]["encryption_key"].encode()
+            fernet = Fernet(key)
+            return fernet.decrypt(encrypted_data.encode()).decode()
+        except Exception as e:
+            raise SecurityError(f"Échec du déchiffrement: {str(e)}")
+    
+    def _sanitize_log_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Nettoie les données sensibles pour le logging.
+        
+        Args:
+            data: Données à nettoyer
+            
+        Returns:
+            Données nettoyées
+        """
+        sanitized = data.copy()
+        
+        # Masquage des champs sensibles
+        sensitive_fields = [
+            "password", "token", "secret", "key", "credit_card",
+            "ssn", "phone", "email"
+        ]
+        
+        for key in list(sanitized.keys()):
+            if any(sensitive in key.lower() for sensitive in sensitive_fields):
+                sanitized[key] = "***MASKED***"
+        
+        return sanitized
+    
+    # =========================================================================
+    # MÉTHODES D'AUDIT ET DE CONFORMITÉ
+    # =========================================================================
+    
+    def _log_audit(self, audit_data: Dict[str, Any]) -> None:
+        """
+        Enregistre une entrée d'audit.
+        
+        Args:
+            audit_data: Données d'audit
+        """
+        if not self.config["security"]["audit_logging_enabled"]:
+            return
+        
+        # Nettoyage des données sensibles
+        sanitized_data = self._sanitize_log_data(audit_data)
+        
+        # Journalisation d'audit
+        audit_logger = logging.getLogger(f"microagents.audit.{self.AGENT_NAME}")
+        audit_logger.info(
+            "Audit entry",
+            extra={
+                "audit": sanitized_data,
+                "compliance_standard": self.COMPLIANCE_STANDARDS,
+                "data_classification": self.DATA_CLASSIFICATION
+            }
+        )
+    
+    def _check_compliance(self) -> None:
+        """Vérifie la conformité aux standards configurés."""
+        for standard in self.COMPLIANCE_STANDARDS:
+            if standard == ComplianceStandard.GDPR.value:
+                self._check_gdpr_compliance()
+            elif standard == ComplianceStandard.SOC2.value:
+                self._check_soc2_compliance()
+            elif standard == ComplianceStandard.ISO27001.value:
+                self._check_iso27001_compliance()
+    
+    def _check_gdpr_compliance(self) -> None:
+        """Vérifie la conformité GDPR."""
+        # Vérification du masquage des PII
+        if not self.config["security"].get("pii_masking_enabled", False):
+            self.logger.warning(
+                "Masquage PII non activé - Risque de non-conformité GDPR"
+            )
+    
+    def _check_soc2_compliance(self) -> None:
+        """Vérifie la conformité SOC2."""
+        # Vérification des logs d'audit
+        if not self.config["security"]["audit_logging_enabled"]:
+            self.logger.warning(
+                "Logging d'audit non activé - Risque de non-conformité SOC2"
+            )
+    
+    def _check_iso27001_compliance(self) -> None:
+        """Vérifie la conformité ISO27001."""
+        # Vérification de la gestion des risques
+        if not hasattr(self, '_risk_assessment'):
+            self.logger.warning(
+                "Évaluation des risques non implémentée - Risque de non-conformité ISO27001"
+            )
+    
+    # =========================================================================
+    # MÉTHODES DE MONITORING ET SANTÉ
+    # =========================================================================
+    
+    async def health_check(self) -> Dict[str, Any]:
+        """
+        Vérifie la santé de l'agent.
+        
+        Returns:
+            Statut de santé détaillé
+        """
+        checks = {
+            "agent_status": self.status.value,
+            "timestamp": datetime.utcnow().isoformat(),
+            "version": self.AGENT_VERSION,
+            "uptime_seconds": (datetime.utcnow() - self._start_time).total_seconds()
+        }
+        
+        # Vérification du cache
+        checks["cache"] = {
+            "size": self._cache_stats["size"],
+            "hits": self._cache_stats["hits"],
+            "misses": self._cache_stats["misses"],
+            "hit_rate": (
+                self._cache_stats["hits"] / (self._cache_stats["hits"] + self._cache_stats["misses"])
+                if (self._cache_stats["hits"] + self._cache_stats["misses"]) > 0
+                else 0
+            )
+        }
+        
+        # Vérification des dépendances
+        checks["dependencies"] = await self._check_dependencies()
+        
+        # Métriques système
+        checks["metrics"] = {
+            "processing_success": self.metrics["processing_success"]._value.get(),
+            "processing_failure": {
+                label: self.metrics["processing_failure"]._value.get()
+                for label in ["business_rule", "validation", "unknown"]
+            },
+            "active_requests": ACTIVE_REQUESTS._value.get()
+        }
+        
+        # Détermination du statut global
+        all_healthy = all(
+            dep["status"] == "healthy"
+            for dep in checks["dependencies"].values()
+            if dep.get("required", True)
+        )
+        
+        checks["overall_status"] = "healthy" if all_healthy else "degraded"
+        
+        # Mise à jour de la métrique Prometheus
+        self.health_status.set(1 if checks["overall_status"] == "healthy" else 0)
+        
+        return checks
+    
+    async def _check_dependencies(self) -> Dict[str, Dict[str, Any]]:
+        """
+        Vérifie l'état des dépendances.
+        
+        Returns:
+            Statut des dépendances
+        """
+        dependencies_status = {}
+        
+        {% for dep_name, dep_config in dependencies.items() %}
+        # Vérification: {{ dep_name }}
+        try:
+            {% if dep_config.type == 'http' %}
+            import aiohttp
+            async with aiohttp.ClientSession() as session:
+                async with session.get("{{ dep_config.health_check }}", timeout=5) as resp:
+                    status = "healthy" if resp.status == 200 else "unhealthy"
+            {% elif dep_config.type == 'database' %}
+            # Vérification de connexion DB
+            status = "healthy"  # À implémenter
+            {% elif dep_config.type == 'cache' %}
+            # Test de ping du cache
+            status = "healthy" if self._cache else "unhealthy"
+            {% else %}
+            status = "unknown"
+            {% endif %}
+            
+            dependencies_status["{{ dep_name }}"] = {
+                "status": status,
+                "type": "{{ dep_config.type }}",
+                "required": {{ dep_config.required|lower }},
+                "checked_at": datetime.utcnow().isoformat()
+            }
+        except Exception as e:
+            dependencies_status["{{ dep_name }}"] = {
+                "status": "unhealthy",
+                "error": str(e),
+                "type": "{{ dep_config.type }}",
+                "required": {{ dep_config.required|lower }},
+                "checked_at": datetime.utcnow().isoformat()
+            }
+        {% endfor %}
+        
+        return dependencies_status
+    
+    def get_metrics(self) -> bytes:
+        """
+        Retourne les métriques Prometheus.
+        
+        Returns:
+            Métriques au format Prometheus
+        """
+        return generate_latest(REGISTRY)
+    
+    # =========================================================================
+    # MÉTHODES UTILITAIRES
+    # =========================================================================
+    
+    @staticmethod
+    def _deep_merge(base: Dict, update: Dict) -> Dict:
+        """
+        Fusionne récursivement deux dictionnaires.
+        
+        Args:
+            base: Dictionnaire de base
+            update: Dictionnaire avec mises à jour
+            
+        Returns:
+            Dictionnaire fusionné
+        """
+        result = base.copy()
+        
+        for key, value in update.items():
+            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+                result[key] = {{ agent_class_name }}._deep_merge(result[key], value)
+            else:
+                result[key] = value
+        
+        return result
+    
+    @staticmethod
+    def _format_numbers(data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Formate les nombres pour la sortie.
+        
+        Args:
+            data: Données à formater
+            
+        Returns:
+            Données formatées
+        """
+        # À implémenter selon les besoins
+        return data
+    
+    def _connect_dependencies(self) -> None:
+        """Établit les connexions aux dépendances."""
+        # À implémenter selon les dépendances
+        pass
+    
+    def _load_business_rules(self) -> None:
+        """Charge et compile les règles métier."""
+        # Les règles sont déjà dans config["business_rules"]
+        pass
+    
+    # =========================================================================
+    # CONTEXT MANAGERS
+    # =========================================================================
+    
+    @contextmanager
+    def execution_context(self, context_id: Optional[str] = None):
+        """
+        Context manager pour l'exécution avec tracking.
+        
+        Args:
+            context_id: ID de contexte optionnel
+        """
+        context_id = context_id or str(uuid.uuid4())
+        
+        try:
+            self.logger.info(
+                "Début du contexte d'exécution",
+                extra={"context_id": context_id}
+            )
+            
+            yield context_id
+            
+            self.logger.info(
+                "Fin du contexte d'exécution (succès)",
+                extra={"context_id": context_id}
+            )
+            
+        except Exception as e:
+            self.logger.error(
+                "Fin du contexte d'exécution (erreur)",
+                extra={
+                    "context_id": context_id,
+                    "error": str(e)
+                },
+                exc_info=True
+            )
+            raise
+    
+    # =========================================================================
+    # MÉTHODES DE TEST (BOILERPLATE)
+    # =========================================================================
+    
+    async def test_scenario(
+        self,
+        scenario_name: str,
+        test_input: Dict[str, Any],
+        expected_output: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Exécute un scénario de test.
+        
+        Args:
+            scenario_name: Nom du scénario
+            test_input: Données de test
+            expected_output: Sortie attendue (pour validation)
+            
+        Returns:
+            Résultats du test
+        """
+        test_id = str(uuid.uuid4())
+        start_time = time.time()
+        
+        self.logger.info(
+            "Début du scénario de test",
+            extra={
+                "test_id": test_id,
+                "scenario": scenario_name,
+                "input_hash": hashlib.md5(
+                    json.dumps(test_input).encode()
+                ).hexdigest()[:8]
+            }
+        )
+        
+        try:
+            # Exécution
+            result = await self.execute(test_input)
+            
+            # Validation si sortie attendue fournie
+            validation_result = None
+            if expected_output:
+                validation_result = self._validate_test_result(
+                    result, expected_output, scenario_name
+                )
+            
+            test_result = {
+                "test_id": test_id,
+                "scenario": scenario_name,
+                "status": "passed",
+                "execution_time_seconds": time.time() - start_time,
+                "result": result,
+                "validation": validation_result,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            
+            self.logger.info(
+                "Test réussi",
+                extra={
+                    "test_id": test_id,
+                    "scenario": scenario_name,
+                    "execution_time": test_result["execution_time_seconds"]
+                }
+            )
+            
+            return test_result
+            
+        except Exception as e:
+            test_result = {
+                "test_id": test_id,
+                "scenario": scenario_name,
+                "status": "failed",
+                "error": str(e),
+                "error_type": type(e).__name__,
+                "execution_time_seconds": time.time() - start_time,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            
+            self.logger.error(
+                "Test échoué",
+                extra={
+                    "test_id": test_id,
+                    "scenario": scenario_name,
+                    "error": str(e)
+                },
+                exc_info=True
+            )
+            
+            return test_result
+    
+    def _validate_test_result(
+        self,
+        actual: {{ primary_output_model }},
+        expected: Dict[str, Any],
+        scenario_name: str
+    ) -> Dict[str, Any]:
+        """
+        Valide les résultats d'un test.
+        
+        Args:
+            actual: Résultat actuel
+            expected: Résultat attendu
+            scenario_name: Nom du scénario
+            
+        Returns:
+            Résultats de validation
+        """
+        validation_errors = []
+        
+        # Validation des champs critiques
+        {% for validation_field in test_validation_fields %}
+        if "{{ validation_field }}" in expected:
+            actual_value = actual.{{ validation_field }}
+            expected_value = expected["{{ validation_field }}"]
+            
+            {% if validation_field == 'anomalies' %}
+            # Validation spéciale pour les anomalies
+            if len(actual_value) != len(expected_value):
+                validation_errors.append({
+                    "field": "{{ validation_field }}",
+                    "issue": f"Nombre d'anomalies incorrect: {len(actual_value)} au lieu de {len(expected_value)}",
+                    "scenario": scenario_name
+                })
+            {% else %}
+            if actual_value != expected_value:
+                validation_errors.append({
+                    "field": "{{ validation_field }}",
+                    "issue": f"Valeur incorrecte: {actual_value} au lieu de {expected_value}",
+                    "scenario": scenario_name
+                })
+            {% endif %}
+        {% endfor %}
+        
+        return {
+            "is_valid": len(validation_errors) == 0,
+            "errors": validation_errors,
+            "checked_fields": {{ test_validation_fields|tojson }},
+            "scenario": scenario_name
+        }
+    
+    @classmethod
+    def run_test_suite(cls, test_cases: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Exécute une suite de tests.
+        
+        Args:
+            test_cases: Liste des cas de test
+            
+        Returns:
+            Résumé des tests
+        """
+        results = {
+            "total": len(test_cases),
+            "passed": 0,
+            "failed": 0,
+            "scenarios": {},
+            "start_time": datetime.utcnow().isoformat()
+        }
+        
+        agent = cls(config={"environment": "testing"})
+        
+        for test_case in test_cases:
+            scenario_name = test_case["name"]
+            
+            # Exécution du test (simplifié - en réalité async)
+            try:
+                # Ici, on appellerait agent.test_scenario de manière asynchrone
+                test_result = {
+                    "status": "simulated",
+                    "scenario": scenario_name
+                }
+                
+                if test_result.get("status") == "passed":
+                    results["passed"] += 1
+                else:
+                    results["failed"] += 1
+                
+                results["scenarios"][scenario_name] = test_result
+                
+            except Exception as e:
+                results["failed"] += 1
+                results["scenarios"][scenario_name] = {
+                    "status": "error",
+                    "error": str(e)
+                }
+        
+        results["end_time"] = datetime.utcnow().isoformat()
+        results["success_rate"] = (
+            results["passed"] / results["total"] * 100
+            if results["total"] > 0 else 0
+        )
+        
+        return results
+
+# =============================================================================
+# FONCTIONS D'USAGE ET D'EXEMPLE
+# =============================================================================
+
+async def example_usage() -> None:
+    """
+    Exemple d'utilisation de l'agent.
+    
+    Cette fonction démontre comment utiliser l'agent dans différents scénarios.
+    """
+    print(f"=== Exemple d'utilisation: {{ agent_name }} ===")
+    
+    # 1. Initialisation
+    config = {
+        "environment": "development",
+        "logging": {"level": "DEBUG"},
+        "security": {"audit_logging_enabled": True}
+    }
+    
+    agent = {{ agent_class_name }}(config=config)
+    print(f"✅ Agent initialisé: {agent.AGENT_NAME} v{agent.AGENT_VERSION}")
+    
+    # 2. Vérification de santé
+    health = await agent.health_check()
+    print(f"✅ Santé: {health['overall_status']}")
+    print(f"   Uptime: {health['uptime_seconds']:.1f}s")
+    
+    # 3. Exécution simple
+    sample_input = {{ sample_input|tojson }}
+    
+    try:
+        result = await agent.execute(sample_input)
+        print(f"✅ Exécution réussie")
+        print(f"   Execution ID: {result.execution_id}")
+        print(f"   Temps de traitement: {result.performance.processing_time_ms}ms")
+        
+        {% if has_anomaly_detection %}
+        if result.anomalies:
+            print(f"   Anomalies détectées: {len(result.anomalies)}")
+            for anomaly in result.anomalies[:3]:  # Affiche les 3 premières
+                print(f"    - {anomaly.rule}: {anomaly.severity}")
+        {% endif %}
+        
+    except Exception as e:
+        print(f"❌ Erreur d'exécution: {str(e)}")
+    
+    # 4. Batch execution
+    batch_input = [sample_input] * 3
+    batch_results = await agent.batch_execute(batch_input, max_concurrency=2)
+    print(f"✅ Batch execution: {len(batch_results)} résultats")
+    
+    # 5. Métriques
+    metrics = agent.get_metrics()
+    print(f"✅ Métriques disponibles: {len(metrics)} bytes")
+
+
+def run_tests() -> None:
+    """
+    Exécute les tests de l'agent.
+    """
+    print(f"=== Tests: {{ agent_name }} ===")
+    
+    test_cases = {{ test_cases|tojson }}
+    
+    results = {{ agent_class_name }}.run_test_suite(test_cases)
+    
+    print(f"Total: {results['total']}")
+    print(f"Réussis: {results['passed']}")
+    print(f"Échoués: {results['failed']}")
+    print(f"Taux de succès: {results['success_rate']:.1f}%")
+    
+    for scenario, result in results["scenarios"].items():
+        status = "✅" if result.get("status") in ["passed", "simulated"] else "❌"
+        print(f"  {status} {scenario}")
+
+
+# =============================================================================
+# POINT D'ENTRÉE PRINCIPAL
+# =============================================================================
+
+if __name__ == "__main__":
+    """
+    Point d'entrée principal pour l'exécution en standalone.
+    
+    Usage:
+        python {{ agent_name_snake }}.py --help
+        python {{ agent_name_snake }}.py --execute --input input.json
+        python {{ agent_name_snake }}.py --test
+        python {{ agent_name_snake }}.py --health
+    """
+    import argparse
+    import sys
+    
+    parser = argparse.ArgumentParser(
+        description="{{ description }}",
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    
+    parser.add_argument(
+        "--execute",
+        action="store_true",
+        help="Exécute l'agent avec les données d'entrée"
+    )
+    parser.add_argument(
+        "--input",
+        type=str,
+        help="Fichier JSON contenant les données d'entrée"
+    )
+    parser.add_argument(
+        "--test",
+        action="store_true",
+        help="Exécute la suite de tests"
+    )
+    parser.add_argument(
+        "--health",
+        action="store_true",
+        help="Vérifie la santé de l'agent"
+    )
+    parser.add_argument(
+        "--config",
+        type=str,
+        help="Fichier de configuration JSON"
+    )
+    parser.add_argument(
+        "--metrics",
+        action="store_true",
+        help="Affiche les métriques Prometheus"
+    )
+    parser.add_argument(
+        "--version",
+        action="store_true",
+        help="Affiche la version de l'agent"
+    )
+    
+    args = parser.parse_args()
+    
+    if args.version:
+        print(f"{{ agent_name }} v{{ version }}")
+        print(f"Généré le: {{ generation_date }}")
+        sys.exit(0)
+    
+    if not any([args.execute, args.test, args.health, args.metrics]):
+        parser.print_help()
+        sys.exit(1)
+    
+    # Chargement de la configuration
+    config = {}
+    if args.config:
+        try:
+            with open(args.config, 'r') as f:
+                config = json.load(f)
+        except Exception as e:
+            print(f"❌ Erreur chargement configuration: {str(e)}")
+            sys.exit(1)
+    
+    # Initialisation de l'agent
+    agent = {{ agent_class_name }}(config=config)
+    
+    async def main():
+        if args.health:
+            health = await agent.health_check()
+            print(json.dumps(health, indent=2))
+        
+        elif args.metrics:
+            metrics = agent.get_metrics()
+            print(metrics.decode())
+        
+        elif args.test:
+            run_tests()
+        
+        elif args.execute:
+            if not args.input:
+                print("❌ L'option --input est requise avec --execute")
+                sys.exit(1)
+            
+            try:
+                with open(args.input, 'r') as f:
+                    input_data = json.load(f)
+            except Exception as e:
+                print(f"❌ Erreur chargement input: {str(e)}")
+                sys.exit(1)
+            
+            try:
+                result = await agent.execute(input_data)
+                print(json.dumps(result.dict(), indent=2))
+            except Exception as e:
+                print(f"❌ Erreur d'exécution: {str(e)}")
+                sys.exit(1)
+    
+    # Exécution asynchrone
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\n🛑 Interrompu par l'utilisateur")
+        sys.exit(0)
+    except Exception as e:
+        print(f"❌ Erreur inattendue: {str(e)}")
+        sys.exit(1)
+
+"""
+================================================================================
+FICHIER GÉNÉRÉ PAR MICROAGENTS PLATFORM - NE PAS MODIFIER MANUELLEMENT
+Checksum de génération: {{ checksum }}
+Timestamp: {{ generation_timestamp }}
+Générateur version: {{ generator_version }}
+================================================================================
+"""

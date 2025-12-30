@@ -1,0 +1,87 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sample-data-loader
+  annotations:
+    "job.kubernetes.io/run-once": "true"
+spec:
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      serviceAccountName: microagents-dev-sa
+      restartPolicy: OnFailure
+      containers:
+      - name: data-loader
+        image: registry.internal/microagents/cli:dev-latest
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            echo "Loading sample data..."
+            
+            # Wait for services to be ready
+            echo "Waiting for database..."
+            until microagents db check; do
+              sleep 5
+            done
+            
+            echo "Loading sample data..."
+            
+            # Load sample users
+            microagents generate users --count 10 \
+              --roles admin,user,viewer \
+              --output /tmp/users.json
+            
+            # Load sample agents
+            microagents generate agents --count 50 \
+              --types monitoring,cost,security,performance \
+              --output /tmp/agents.json
+            
+            # Load sample incidents
+            microagents generate incidents --count 100 \
+              --severities low,medium,high,critical \
+              --output /tmp/incidents.json
+            
+            # Load sample cost data
+            microagents generate cost-data --days 30 \
+              --providers aws,azure,gcp \
+              --output /tmp/cost-data.json
+            
+            # Load sample security events
+            microagents generate security-events --count 200 \
+              --types vulnerability,breach,compliance \
+              --output /tmp/security-events.json
+            
+            # Load sample performance metrics
+            microagents generate metrics --count 1000 \
+              --types cpu,memory,latency,throughput \
+              --output /tmp/metrics.json
+            
+            echo "Sample data loaded successfully"
+            
+            # Create summary
+            echo "=== Sample Data Summary ==="
+            echo "Users: 10"
+            echo "Agents: 50"
+            echo "Incidents: 100"
+            echo "Cost data points: 30 days × 3 providers"
+            echo "Security events: 200"
+            echo "Performance metrics: 1000"
+            
+        envFrom:
+        - configMapRef:
+            name: microagents-dev-config
+        - secretRef:
+            name: microagents-dev-secrets
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        volumeMounts:
+        - name: data-volume
+          mountPath: /tmp
+      volumes:
+      - name: data-volume
+        emptyDir: {}

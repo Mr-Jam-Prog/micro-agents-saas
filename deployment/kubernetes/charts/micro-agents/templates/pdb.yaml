@@ -1,0 +1,14 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "micro-agents.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "micro-agents.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "micro-agents.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: api
+  unhealthyPodEvictionPolicy: IfHealthyBudget

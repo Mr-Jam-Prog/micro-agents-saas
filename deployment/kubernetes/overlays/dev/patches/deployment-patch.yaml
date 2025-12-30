@@ -1,0 +1,245 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: microagents-api
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      annotations:
+        reloader.stakater.com/match: "true"
+        sidecar.istio.io/inject: "false"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: microagents-dev-sa
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: api
+        image: registry.internal/microagents/api:dev-latest
+        imagePullPolicy: Always
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            echo "Starting in development mode..."
+            python -m debugpy --listen 0.0.0.0:9229 --wait-for-client -m uvicorn \
+              microagents.api.server:app \
+              --host 0.0.0.0 \
+              --port 8000 \
+              --reload \
+              --reload-dir /app \
+              --log-level debug
+        ports:
+        - name: http
+          containerPort: 8000
+        - name: debug
+          containerPort: 9229
+        - name: metrics
+          containerPort: 9090
+        - name: health
+          containerPort: 8080
+        envFrom:
+        - configMapRef:
+            name: microagents-dev-config
+        - secretRef:
+            name: microagents-dev-secrets
+        env:
+        - name: PYTHONPATH
+          value: /app
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: PYTHONDONTWRITEBYTECODE
+          value: "1"
+        resources:
+          limits:
+            cpu: "2"
+            memory: "2Gi"
+          requests:
+            cpu: "100m"
+            memory: "512Mi"
+        volumeMounts:
+        - name: source-code
+          mountPath: /app
+        - name: dev-tools
+          mountPath: /dev-tools
+          readOnly: true
+        - name: local-storage
+          mountPath: /data
+        - name: tmp
+          mountPath: /tmp
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+        startupProbe:
+          httpGet:
+            path: /startup
+            port: 8080
+          failureThreshold: 30
+          periodSeconds: 10
+        lifecycle:
+          postStart:
+            exec:
+              command: ["/bin/sh", "-c", "echo 'Container started' > /tmp/startup.log"]
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 30"]
+      - name: development-console
+        image: registry.internal/microagents/cli:dev-latest
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            echo "Development console starting..."
+            sleep 10
+            microagents dev-console --port 4000 --host 0.0.0.0
+        ports:
+        - name: console
+          containerPort: 4000
+        envFrom:
+        - configMapRef:
+            name: microagents-dev-config
+        - secretRef:
+            name: microagents-dev-secrets
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+        volumeMounts:
+        - name: dev-tools
+          mountPath: /tools
+        - name: local-storage
+          mountPath: /data
+      - name: debug-proxy
+        image: nicolaka/netshoot:latest
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            echo "Debug proxy started on port 4001"
+            socat TCP-LISTEN:4001,fork,reuseaddr TCP:localhost:9229 &
+            sleep infinity
+        ports:
+        - name: debug-proxy
+          containerPort: 4001
+        resources:
+          limits:
+            cpu: "100m"
+            memory: "128Mi"
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+      volumes:
+      - name: source-code
+        hostPath:
+          path: /mnt/development/microagents
+          type: Directory
+      - name: dev-tools
+        emptyDir: {}
+      - name: local-storage
+        hostPath:
+          path: /mnt/data/microagents-dev
+          type: DirectoryOrCreate
+      - name: tmp
+        emptyDir:
+          sizeLimit: 1Gi
+      initContainers:
+      - name: init-db
+        image: registry.internal/microagents/cli:dev-latest
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            echo "Initializing database..."
+            microagents db migrate
+            microagents db seed --sample-data
+            echo "Database initialization complete"
+        envFrom:
+        - configMapRef:
+            name: microagents-dev-config
+        - secretRef:
+            name: microagents-dev-secrets
+        volumeMounts:
+        - name: local-storage
+          mountPath: /data
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: microagents-agent
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+      - name: agent
+        image: registry.internal/microagents/agent:dev-latest
+        imagePullPolicy: Always
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            echo "Starting agent in development mode..."
+            python -m debugpy --listen 0.0.0.0:9229 -m microagents.agent.runner \
+              --debug \
+              --hot-reload \
+              --log-level DEBUG
+        ports:
+        - name: agent-port
+          containerPort: 8081
+        - name: debug
+          containerPort: 9229
+        envFrom:
+        - configMapRef:
+            name: microagents-dev-config
+        - secretRef:
+            name: microagents-dev-secrets
+        resources:
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+        volumeMounts:
+        - name: source-code
+          mountPath: /app
+        - name: local-storage
+          mountPath: /data
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - microagents agent health-check
+          initialDelaySeconds: 60
+          periodSeconds: 30
+      volumes:
+      - name: source-code
+        hostPath:
+          path: /mnt/development/microagents
+          type: Directory
+      - name: local-storage
+        hostPath:
+          path: /mnt/data/microagents-dev
+          type: DirectoryOrCreate

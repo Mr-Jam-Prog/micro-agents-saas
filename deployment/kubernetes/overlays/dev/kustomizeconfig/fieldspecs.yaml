@@ -1,0 +1,24 @@
+commonLabels:
+- path: metadata/labels
+  create: true
+
+commonAnnotations:
+- path: metadata/annotations
+  create: true
+
+namePrefix:
+- path: metadata/name
+  kind: .*
+
+namespace:
+- path: metadata/namespace
+  kind: .*
+  create: true
+
+images:
+- path: spec/template/spec/containers/image
+  kind: Deployment
+- path: spec/template/spec/initContainers/image
+  kind: Deployment
+- path: spec/jobTemplate/spec/template/spec/containers/image
+  kind: CronJob

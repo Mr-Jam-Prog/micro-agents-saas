@@ -1,0 +1,41 @@
+# Production-specific configuration overrides
+app:
+  environment: production
+  logging:
+    level: INFO
+    format: json
+    enableMetrics: true
+    enableTracing: true
+  
+  performance:
+    cacheTtl: 3600
+    connectionPoolSize: 50
+    timeout: 30s
+  
+  security:
+    enableCsp: true
+    enableHsts: true
+    corsOrigins:
+      - https://app.microagents.io
+      - https://admin.microagents.io
+  
+  monitoring:
+    enableProfiling: false
+    metricsPort: 9090
+    healthCheckPath: /health
+  
+  backup:
+    enabled: true
+    schedule: "0 3 * * *"
+    retentionDays: 30
+  
+  disasterRecovery:
+    enabled: true
+    rpo: 3600  # 1 hour
+    rto: 1800  # 30 minutes
+  
+  compliance:
+    pciDss: true
+    gdpr: true
+    hipaa: false
+    soc2: true

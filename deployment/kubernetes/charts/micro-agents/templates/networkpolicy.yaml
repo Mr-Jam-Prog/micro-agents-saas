@@ -1,0 +1,97 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "micro-agents.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "micro-agents.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "micro-agents.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: api
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow from ingress controller
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          networking/ingress: "true"
+    ports:
+    - protocol: TCP
+      port: 8000
+  # Allow from monitoring
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          networking/monitoring: "true"
+    ports:
+    - protocol: TCP
+      port: 9090
+    - protocol: TCP
+      port: 8080
+  # Allow internal communication
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: {{ include "micro-agents.name" . }}
+  egress:
+  # Allow DNS
+  - to:
+    - namespaceSelector: {}
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow to Redis
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          networking/database: "true"
+      podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+  # Allow to PostgreSQL
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          networking/database: "true"
+      podSelector:
+        matchLabels:
+          app: postgresql
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow to Prometheus
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          networking/monitoring: "true"
+      podSelector:
+        matchLabels:
+          app: prometheus
+    ports:
+    - protocol: TCP
+      port: 9090
+  # Allow to external APIs (restricted)
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80

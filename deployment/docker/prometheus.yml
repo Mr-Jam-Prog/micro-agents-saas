@@ -1,0 +1,58 @@
+# Configuration Prometheus pour l'exportation des métriques
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Métriques custom pour MicroAgents API
+scrape_configs:
+  - job_name: 'microagents-api'
+    static_configs:
+      - targets: ['localhost:9090']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    
+    # Labels pour l'identification
+    labels:
+      service: 'microagents-api'
+      environment: '${APP_ENV:-production}'
+      version: '${APP_VERSION:-1.0.0}'
+    
+    # Filtrage des métriques
+    metric_relabel_configs:
+      # Garder seulement les métriques pertinentes
+      - source_labels: [__name__]
+        regex: '(python_.*|process_.*|http_.*|api_.*|agent_.*)'
+        action: keep
+
+# Règles d'alerte
+rule_files:
+  - '/app/alerts.yml'
+
+# Configuration de stockage externe (optionnel)
+remote_write:
+  - url: '${PROMETHEUS_REMOTE_WRITE_URL}'
+    basic_auth:
+      username: '${PROMETHEUS_USERNAME}'
+      password: '${PROMETHEUS_PASSWORD}'
+    write_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'up|.*_error.*|.*_latency.*'
+        action: keep
+
+# Métriques à exposer
+- job_name: 'node-exporter'
+  static_configs:
+    - targets: ['localhost:9100']
+
+- job_name: 'cadvisor'
+  static_configs:
+    - targets: ['localhost:8080']
+
+# Exportation des métriques d'application
+- job_name: 'app-metrics'
+  static_configs:
+    - targets: ['localhost:8000']
+  metrics_path: '/api/v1/metrics'
+  params:
+    format: ['prometheus']

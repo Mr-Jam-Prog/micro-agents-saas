@@ -1,0 +1,167 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dev-tools-config
+data:
+  dev-tools.sh: |
+    #!/bin/bash
+    # Development tools script
+    
+    # Port forwarding setup
+    setup_port_forwarding() {
+      echo "Setting up port forwarding..."
+      
+      # API
+      kubectl port-forward svc/microagents-api 8000:8000 -n microagents-dev &
+      echo "API: http://localhost:8000"
+      
+      # Debug proxy
+      kubectl port-forward svc/microagents-api 4001:4001 -n microagents-dev &
+      echo "Debug: http://localhost:4001"
+      
+      # Console
+      kubectl port-forward svc/microagents-api 4000:4000 -n microagents-dev &
+      echo "Console: http://localhost:4000"
+      
+      # Metrics
+      kubectl port-forward svc/microagents-api 9090:9090 -n microagents-dev &
+      echo "Metrics: http://localhost:9090"
+      
+      # Database
+      kubectl port-forward svc/postgres-dev 5432:5432 -n microagents-dev &
+      echo "Database: localhost:5432"
+      
+      # Redis
+      kubectl port-forward svc/redis-dev 6379:6379 -n microagents-dev &
+      echo "Redis: localhost:6379"
+      
+      # Jaeger
+      kubectl port-forward svc/jaeger 16686:16686 -n observability &
+      echo "Jaeger UI: http://localhost:16686"
+      
+      # Grafana
+      kubectl port-forward svc/grafana 3000:3000 -n observability &
+      echo "Grafana: http://localhost:3000"
+      
+      # Prometheus
+      kubectl port-forward svc/prometheus 9090:9090 -n observability &
+      echo "Prometheus: http://localhost:9090"
+    }
+    
+    # Development console
+    start_console() {
+      echo "Starting development console..."
+      kubectl exec -it deployment/microagents-api -c development-console -n microagents-dev -- \
+        microagents dev-console --interactive
+    }
+    
+    # Hot reload trigger
+    trigger_hot_reload() {
+      echo "Triggering hot reload..."
+      kubectl exec deployment/microagents-api -c api -n microagents-dev -- \
+        touch /app/microagents/api/server.py
+      echo "Hot reload triggered"
+    }
+    
+    # Generate test data
+    generate_test_data() {
+      echo "Generating test data..."
+      kubectl exec deployment/microagents-api -c api -n microagents-dev -- \
+        microagents generate test-data \
+          --users 20 \
+          --agents 100 \
+          --incidents 50 \
+          --metrics 1000
+    }
+    
+    # Performance profiling
+    start_profiling() {
+      echo "Starting performance profiling..."
+      kubectl exec deployment/microagents-api -c api -n microagents-dev -- \
+        python -m cProfile -o /tmp/profile.stats /app/microagents/api/server.py &
+      echo "Profiling started. Results will be in /tmp/profile.stats"
+    }
+    
+    # Debug session
+    attach_debugger() {
+      echo "Attaching debugger..."
+      echo "1. Connect your IDE to localhost:4001"
+      echo "2. Set breakpoints in your code"
+      echo "3. Make requests to trigger breakpoints"
+    }
+    
+    # Show logs
+    show_logs() {
+      echo "Showing logs..."
+      kubectl logs deployment/microagents-api -c api -n microagents-dev --tail=100 -f
+    }
+    
+    # Main menu
+    main() {
+      echo "=== MicroAgents Development Tools ==="
+      echo "1. Setup port forwarding"
+      echo "2. Start development console"
+      echo "3. Trigger hot reload"
+      echo "4. Generate test data"
+      echo "5. Start performance profiling"
+      echo "6. Attach debugger"
+      echo "7. Show logs"
+      echo "8. Exit"
+      
+      read -p "Select option: " choice
+      
+      case $choice in
+        1) setup_port_forwarding ;;
+        2) start_console ;;
+        3) trigger_hot_reload ;;
+        4) generate_test_data ;;
+        5) start_profiling ;;
+        6) attach_debugger ;;
+        7) show_logs ;;
+        8) exit 0 ;;
+        *) echo "Invalid option" ;;
+      esac
+    }
+    
+    main "$@"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dev-tools
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dev-tools
+  template:
+    metadata:
+      labels:
+        app: dev-tools
+    spec:
+      serviceAccountName: microagents-dev-sa
+      containers:
+      - name: dev-tools
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            apk add --no-cache curl jq postgresql-client redis
+            echo "Development tools container ready"
+            echo "Use kubectl exec to run commands"
+            sleep infinity
+        resources:
+          requests:
+            cpu: "10m"
+            memory: "32Mi"
+          limits:
+            cpu: "100m"
+            memory: "128Mi"
+        volumeMounts:
+        - name: dev-tools-script
+          mountPath: /tools
+      volumes:
+      - name: dev-tools-script
+        configMap:
+          name: dev-tools-config
+          defaultMode: 0755

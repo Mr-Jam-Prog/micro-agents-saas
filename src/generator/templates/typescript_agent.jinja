@@ -1,0 +1,2285 @@
+// =============================================================================
+// {{ agent_name }}.ts - Généré par MicroAgents Platform
+// Version: {{ version }}
+// Date de génération: {{ generation_date }}
+// Description: {{ description }}
+// ROI Score: {{ roi_score }}
+// Complexité: {{ complexity_level }}
+// 
+// Cet agent a été généré automatiquement par le système de génération MicroAgents.
+// NE MODIFIEZ PAS MANUELLEMENT LES SECTIONS AUTO-GÉNÉRÉES.
+// Utilisez le DSL pour les mises à jour.
+// 
+// Agent ID: {{ agent_id }}
+// Checksum: {{ checksum }}
+// =============================================================================
+
+/**
+ * Configuration de TypeScript stricte
+ * @path tsconfig.json
+ */
+// {
+//   "compilerOptions": {
+//     "target": "ES2022",
+//     "lib": ["ES2022", "DOM", "DOM.Iterable"],
+//     "module": "ESNext",
+//     "moduleResolution": "bundler",
+//     "strict": true,
+//     "esModuleInterop": true,
+//     "skipLibCheck": true,
+//     "forceConsistentCasingInFileNames": true,
+//     "resolveJsonModule": true,
+//     "isolatedModules": true,
+//     "noUnusedLocals": true,
+//     "noUnusedParameters": true,
+//     "noImplicitReturns": true,
+//     "noFallthroughCasesInSwitch": true,
+//     "declaration": true,
+//     "declarationMap": true,
+//     "sourceMap": true,
+//     "outDir": "./dist",
+//     "rootDir": "./src",
+//     "baseUrl": ".",
+//     "paths": {
+//       "@/*": ["./src/*"],
+//       "@components/*": ["./src/components/*"],
+//       "@utils/*": ["./src/utils/*"],
+//       "@types/*": ["./src/types/*"]
+//     }
+//   },
+//   "include": ["src/**/*"],
+//   "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
+// }
+
+/**
+ * Configuration ESLint avec règles TypeScript
+ * @path .eslintrc.json
+ */
+// {
+//   "root": true,
+//   "env": {
+//     "browser": {{ is_browser_agent|tojson }},
+//     "node": {{ is_node_agent|tojson }},
+//     "es2022": true
+//   },
+//   "extends": [
+//     "eslint:recommended",
+//     "plugin:@typescript-eslint/recommended",
+//     "plugin:@typescript-eslint/recommended-requiring-type-checking",
+//     {% if has_react %}
+//     "plugin:react/recommended",
+//     "plugin:react-hooks/recommended",
+//     {% endif %}
+//     {% if has_vue %}
+//     "plugin:vue/vue3-recommended",
+//     {% endif %}
+//     "plugin:import/recommended",
+//     "plugin:import/typescript",
+//     "prettier"
+//   ],
+//   "parser": "@typescript-eslint/parser",
+//   "parserOptions": {
+//     "ecmaVersion": "latest",
+//     "sourceType": "module",
+//     "project": "./tsconfig.json",
+//     {% if has_react %}
+//     "ecmaFeatures": {
+//       "jsx": true
+//     },
+//     {% endif %}
+//     {% if has_vue %}
+//     "extraFileExtensions": [".vue"]
+//     {% endif %}
+//   },
+//   "plugins": [
+//     "@typescript-eslint",
+//     "import",
+//     {% if has_react %}
+//     "react",
+//     "react-hooks",
+//     {% endif %}
+//     {% if has_vue %}
+//     "vue",
+//     {% endif %}
+//     "prettier"
+//   ],
+//   "rules": {
+//     // Règles TypeScript strictes
+//     "@typescript-eslint/explicit-function-return-type": "error",
+//     "@typescript-eslint/no-explicit-any": "error",
+//     "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+//     "@typescript-eslint/consistent-type-imports": "error",
+//     "@typescript-eslint/no-floating-promises": "error",
+//     "@typescript-eslint/no-misused-promises": "error",
+//     
+//     // Bonnes pratiques
+//     "no-console": ["warn", { "allow": ["warn", "error"] }],
+//     "prefer-const": "error",
+//     "prefer-template": "error",
+//     "object-shorthand": "error",
+//     
+//     // Import/export
+//     "import/order": ["error", {
+//       "groups": [
+//         "builtin",
+//         "external",
+//         "internal",
+//         "parent",
+//         "sibling",
+//         "index"
+//       ],
+//       "newlines-between": "always",
+//       "alphabetize": { "order": "asc" }
+//     }],
+//     
+//     {% if has_react %}
+//     // Règles React
+//     "react/react-in-jsx-scope": "off",
+//     "react/prop-types": "off",
+//     "react-hooks/rules-of-hooks": "error",
+//     "react-hooks/exhaustive-deps": "warn",
+//     {% endif %}
+//     
+//     // Prettier
+//     "prettier/prettier": "error"
+//   },
+//   "settings": {
+//     {% if has_react %}
+//     "react": {
+//       "version": "detect"
+//     },
+//     {% endif %}
+//     "import/resolver": {
+//       "typescript": {
+//         "project": "./tsconfig.json"
+//       }
+//     }
+//   }
+// }
+
+/**
+ * Configuration Prettier
+ * @path .prettierrc.json
+ */
+// {
+//   "semi": true,
+//   "trailingComma": "es5",
+//   "singleQuote": true,
+//   "printWidth": 100,
+//   "tabWidth": 2,
+//   "useTabs": false,
+//   "bracketSpacing": true,
+//   "arrowParens": "avoid",
+//   "endOfLine": "lf"
+// }
+
+// =============================================================================
+// IMPORTS ET CONFIGURATION
+// =============================================================================
+
+// Import tree-shaking annotations
+/* #__PURE__ */ import { AgentStatus, SeverityLevel } from '@microagents/core';
+/* #__PURE__ */ import type { 
+  AgentConfig, 
+  ExecutionContext, 
+  ValidationResult 
+} from '@microagents/types';
+
+// Import runtime pour le développement
+import { 
+  instrument,
+  validateInput,
+  withRetry,
+  auditTrail 
+} from '@microagents/runtime';
+
+// Performance monitoring
+import { 
+  measurePerformance,
+  trackMetrics,
+  PerformanceMetrics 
+} from '@microagents/performance';
+
+// Internationalization
+import { i18n, type TranslationKeys } from '@microagents/i18n';
+
+// Accessibility utilities
+import { 
+  ensureAccessibility,
+  type AriaAttributes 
+} from '@microagents/a11y';
+
+{% if has_react %}
+// React specific imports
+import React, { 
+  useState, 
+  useEffect, 
+  useCallback, 
+  useMemo,
+  useContext,
+  createContext 
+} from 'react';
+
+// React performance
+import { useMemoizedFn, useDebounceFn } from 'ahooks';
+import { ErrorBoundary } from 'react-error-boundary';
+{% endif %}
+
+{% if has_vue %}
+// Vue.js specific imports
+import { 
+  ref, 
+  computed, 
+  watch, 
+  onMounted, 
+  onUnmounted,
+  reactive,
+  readonly 
+} from 'vue';
+import type { 
+  Ref, 
+  ComputedRef, 
+  WatchSource 
+} from 'vue';
+{% endif %}
+
+// =============================================================================
+// TYPES ET INTERFACES
+// =============================================================================
+
+/**
+ * Énumération des statuts de l'agent
+ */
+export enum {{ agent_name }}Status {
+  IDLE = 'idle',
+  LOADING = 'loading',
+  PROCESSING = 'processing',
+  SUCCESS = 'success',
+  ERROR = 'error',
+  DEGRADED = 'degraded'
+}
+
+/**
+ * Énumération des niveaux de sévérité
+ */
+export enum {{ agent_name }}Severity {
+  INFO = 'info',
+  WARNING = 'warning',
+  ERROR = 'error',
+  CRITICAL = 'critical'
+}
+
+/**
+ * Configuration de l'agent
+ */
+export interface {{ agent_name }}Config extends AgentConfig {
+  // Configuration spécifique à l'agent
+  apiEndpoint?: string;
+  timeoutMs?: number;
+  maxRetries?: number;
+  
+  // Performance
+  enableCaching?: boolean;
+  cacheTTL?: number;
+  
+  // UI
+  theme?: 'light' | 'dark' | 'auto';
+  locale?: string;
+  
+  // Monitoring
+  enableTelemetry?: boolean;
+  sampleRate?: number;
+  
+  // Sécurité
+  enableEncryption?: boolean;
+  maskSensitiveData?: boolean;
+}
+
+/**
+ * Données d'entrée de l'agent
+ */
+export interface {{ agent_name }}Input {
+  // Définition des champs d'entrée
+  {% for field in input_fields %}
+  {{ field.name }}: {{ field.typescript_type }};
+  {% endfor %}
+  
+  // Métadonnées optionnelles
+  metadata?: {
+    correlationId?: string;
+    userId?: string;
+    sessionId?: string;
+    timestamp?: string;
+  };
+  
+  // Contexte d'exécution
+  context?: ExecutionContext;
+}
+
+/**
+ * Données de sortie de l'agent
+ */
+export interface {{ agent_name }}Output {
+  // Données principales
+  data: {
+    {% for field in output_fields %}
+    {{ field.name }}: {{ field.typescript_type }};
+    {% endfor %}
+  };
+  
+  // Métadonnées
+  metadata: {
+    executionId: string;
+    agentVersion: string;
+    processingTimeMs: number;
+    timestamp: string;
+    cacheHit?: boolean;
+  };
+  
+  // Anomalies et alertes
+  anomalies?: Array<{
+    id: string;
+    type: string;
+    severity: {{ agent_name }}Severity;
+    message: string;
+    details?: Record<string, unknown>;
+    timestamp: string;
+  }>;
+  
+  // Recommandations
+  recommendations?: Array<{
+    id: string;
+    title: string;
+    description: string;
+    priority: 'low' | 'medium' | 'high';
+    estimatedImpact?: number;
+    actions?: string[];
+  }>;
+  
+  // Performance metrics
+  performance?: PerformanceMetrics;
+}
+
+/**
+ * État de l'agent
+ */
+export interface {{ agent_name }}State {
+  status: {{ agent_name }}Status;
+  data: {{ agent_name }}Output | null;
+  error: Error | null;
+  lastUpdated: Date;
+  executionCount: number;
+  cacheStats: {
+    hits: number;
+    misses: number;
+    size: number;
+  };
+}
+
+/**
+ * Options d'exécution
+ */
+export interface {{ agent_name }}ExecutionOptions {
+  bypassCache?: boolean;
+  priority?: 'low' | 'normal' | 'high';
+  timeoutMs?: number;
+  correlationId?: string;
+}
+
+/**
+ * Événements de l'agent
+ */
+export interface {{ agent_name }}Events {
+  'status-change': {{ agent_name }}Status;
+  'execution-start': { input: {{ agent_name }}Input; options: {{ agent_name }}ExecutionOptions };
+  'execution-success': { output: {{ agent_name }}Output; durationMs: number };
+  'execution-error': { error: Error; input: {{ agent_name }}Input };
+  'cache-hit': { key: string; data: {{ agent_name }}Output };
+  'cache-miss': { key: string };
+}
+
+/**
+ * Hook personnalisé pour React
+ */
+export interface Use{{ agent_name }}Return {
+  // État
+  status: {{ agent_name }}Status;
+  data: {{ agent_name }}Output | null;
+  error: Error | null;
+  isLoading: boolean;
+  isError: boolean;
+  isSuccess: boolean;
+  
+  // Actions
+  execute: (input: {{ agent_name }}Input, options?: {{ agent_name }}ExecutionOptions) => Promise<void>;
+  reset: () => void;
+  refresh: () => Promise<void>;
+  
+  // Métadonnées
+  executionCount: number;
+  lastUpdated: Date | null;
+  cacheStats: {{ agent_name }}State['cacheStats'];
+}
+
+/**
+ * Composition API pour Vue.js
+ */
+export interface Use{{ agent_name }}Composition {
+  // Réactifs
+  status: Ref<{{ agent_name }}Status>;
+  data: Ref<{{ agent_name }}Output | null>;
+  error: Ref<Error | null>;
+  isLoading: ComputedRef<boolean>;
+  isError: ComputedRef<boolean>;
+  isSuccess: ComputedRef<boolean>;
+  
+  // Actions
+  execute: (input: {{ agent_name }}Input, options?: {{ agent_name }}ExecutionOptions) => Promise<void>;
+  reset: () => void;
+  refresh: () => Promise<void>;
+  
+  // Métadonnées
+  executionCount: Ref<number>;
+  lastUpdated: Ref<Date | null>;
+  cacheStats: Ref<{{ agent_name }}State['cacheStats']>;
+}
+
+// =============================================================================
+// CLASSES D'ERREURS PERSONNALISÉES
+// =============================================================================
+
+/**
+ * Erreur de base pour l'agent
+ */
+export class {{ agent_name }}Error extends Error {
+  public readonly code: string;
+  public readonly severity: {{ agent_name }}Severity;
+  public readonly timestamp: Date;
+  public readonly context?: Record<string, unknown>;
+
+  constructor(
+    message: string,
+    code: string = '{{ agent_name_uppercase }}_ERROR',
+    severity: {{ agent_name }}Severity = {{ agent_name }}Severity.ERROR,
+    context?: Record<string, unknown>
+  ) {
+    super(message);
+    this.name = '{{ agent_name }}Error';
+    this.code = code;
+    this.severity = severity;
+    this.timestamp = new Date();
+    this.context = context;
+    
+    // Maintenir la chaîne de prototype pour les instanceof
+    Object.setPrototypeOf(this, {{ agent_name }}Error.prototype);
+  }
+
+  /**
+   * Convertit l'erreur en objet sérialisable
+   */
+  public toJSON(): Record<string, unknown> {
+    return {
+      name: this.name,
+      message: this.message,
+      code: this.code,
+      severity: this.severity,
+      timestamp: this.timestamp.toISOString(),
+      context: this.context,
+      stack: this.stack
+    };
+  }
+}
+
+/**
+ * Erreur de validation
+ */
+export class {{ agent_name }}ValidationError extends {{ agent_name }}Error {
+  constructor(
+    message: string,
+    public readonly field?: string,
+    public readonly validationErrors?: string[]
+  ) {
+    super(message, 'VALIDATION_ERROR', {{ agent_name }}Severity.WARNING, { field, validationErrors });
+    this.name = '{{ agent_name }}ValidationError';
+  }
+}
+
+/**
+ * Erreur de configuration
+ */
+export class {{ agent_name }}ConfigurationError extends {{ agent_name }}Error {
+  constructor(message: string, public readonly configPath?: string) {
+    super(message, 'CONFIGURATION_ERROR', {{ agent_name }}Severity.CRITICAL, { configPath });
+    this.name = '{{ agent_name }}ConfigurationError';
+  }
+}
+
+/**
+ * Erreur de dépendance
+ */
+export class {{ agent_name }}DependencyError extends {{ agent_name }}Error {
+  constructor(
+    message: string,
+    public readonly dependency: string,
+    public readonly dependencyError?: Error
+  ) {
+    super(message, 'DEPENDENCY_ERROR', {{ agent_name }}Severity.ERROR, { 
+      dependency, 
+      dependencyError: dependencyError?.message 
+    });
+    this.name = '{{ agent_name }}DependencyError';
+  }
+}
+
+/**
+ * Erreur de réseau
+ */
+export class {{ agent_name }}NetworkError extends {{ agent_name }}Error {
+  constructor(
+    message: string,
+    public readonly statusCode?: number,
+    public readonly url?: string
+  ) {
+    super(message, 'NETWORK_ERROR', {{ agent_name }}Severity.ERROR, { statusCode, url });
+    this.name = '{{ agent_name }}NetworkError';
+  }
+}
+
+/**
+ * Erreur de timeout
+ */
+export class {{ agent_name }}TimeoutError extends {{ agent_name }}Error {
+  constructor(message: string, public readonly timeoutMs?: number) {
+    super(message, 'TIMEOUT_ERROR', {{ agent_name }}Severity.WARNING, { timeoutMs });
+    this.name = '{{ agent_name }}TimeoutError';
+  }
+}
+
+// =============================================================================
+// UTILITAIRES ET HELPERS
+// =============================================================================
+
+/**
+ * Génère une clé de cache à partir des données d'entrée
+ */
+const generateCacheKey = (input: {{ agent_name }}Input): string => {
+  const inputString = JSON.stringify(input, (key, value) => {
+    // Exclure les champs temporaires et les métadonnées volatiles
+    if (key === 'metadata' || key === 'context' || key.startsWith('_')) {
+      return undefined;
+    }
+    return value;
+  });
+  
+  // Utiliser un hash simple pour la performance
+  let hash = 0;
+  for (let i = 0; i < inputString.length; i++) {
+    const char = inputString.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convertir en entier 32-bit
+  }
+  
+  return `{{ agent_name_snake }}_${hash.toString(36)}`;
+};
+
+/**
+ * Valide les données d'entrée
+ */
+const validate{{ agent_name }}Input = (input: unknown): ValidationResult<{{ agent_name }}Input> => {
+  const errors: string[] = [];
+  
+  if (!input || typeof input !== 'object') {
+    return {
+      isValid: false,
+      errors: ['Input must be an object'],
+      data: null
+    };
+  }
+  
+  const typedInput = input as Partial<{{ agent_name }}Input>;
+  
+  // Validation des champs requis
+  {% for field in input_fields %}
+  {% if field.required %}
+  if (typedInput.{{ field.name }} === undefined || typedInput.{{ field.name }} === null) {
+    errors.push('{{ field.name }} is required');
+  }
+  {% endif %}
+  {% endfor %}
+  
+  // Validation des types
+  {% for field in input_fields %}
+  if (typedInput.{{ field.name }} !== undefined && typedInput.{{ field.name }} !== null) {
+    {% if field.typescript_type.includes('string') %}
+    if (typeof typedInput.{{ field.name }} !== 'string') {
+      errors.push('{{ field.name }} must be a string');
+    }
+    {% elif field.typescript_type.includes('number') %}
+    if (typeof typedInput.{{ field.name }} !== 'number') {
+      errors.push('{{ field.name }} must be a number');
+    }
+    {% elif field.typescript_type.includes('boolean') %}
+    if (typeof typedInput.{{ field_name }} !== 'boolean') {
+      errors.push('{{ field.name }} must be a boolean');
+    }
+    {% elif field.typescript_type.includes('Array') %}
+    if (!Array.isArray(typedInput.{{ field.name }})) {
+      errors.push('{{ field.name }} must be an array');
+    }
+    {% elif field.typescript_type.includes('Record') or field.typescript_type.includes('object') %}
+    if (typeof typedInput.{{ field.name }} !== 'object' || Array.isArray(typedInput.{{ field.name }})) {
+      errors.push('{{ field.name }} must be an object');
+    }
+    {% endif %}
+  }
+  {% endfor %}
+  
+  return {
+    isValid: errors.length === 0,
+    errors,
+    data: errors.length === 0 ? typedInput as {{ agent_name }}Input : null
+  };
+};
+
+/**
+ * Masque les données sensibles pour le logging
+ */
+const maskSensitiveData = <T>(data: T): T => {
+  if (typeof data !== 'object' || data === null) {
+    return data;
+  }
+  
+  const masked = JSON.parse(JSON.stringify(data)) as Record<string, unknown>;
+  const sensitiveKeys = ['password', 'token', 'secret', 'key', 'creditCard', 'ssn'];
+  
+  const maskRecursive = (obj: Record<string, unknown>): void => {
+    for (const key in obj) {
+      if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk))) {
+        obj[key] = '***MASKED***';
+      } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+        maskRecursive(obj[key] as Record<string, unknown>);
+      }
+    }
+  };
+  
+  maskRecursive(masked);
+  return masked as T;
+};
+
+/**
+ * Décorateur pour instrumenter les méthodes
+ */
+function instrumentMethod<T extends (...args: any[]) => any>(
+  target: object,
+  propertyKey: string,
+  descriptor: TypedPropertyDescriptor<T>
+): TypedPropertyDescriptor<T> {
+  const originalMethod = descriptor.value!;
+  
+  descriptor.value = async function(this: any, ...args: Parameters<T>): Promise<ReturnType<T>> {
+    const startTime = performance.now();
+    const methodName = `${target.constructor.name}.${propertyKey}`;
+    
+    try {
+      trackMetrics('method_call', { method: methodName });
+      const result = await originalMethod.apply(this, args);
+      const duration = performance.now() - startTime;
+      
+      trackMetrics('method_success', { 
+        method: methodName, 
+        duration 
+      });
+      
+      if (duration > 1000) { // Seuil de performance
+        console.warn(`Slow method detected: ${methodName} took ${duration.toFixed(2)}ms`);
+      }
+      
+      return result;
+    } catch (error) {
+      const duration = performance.now() - startTime;
+      trackMetrics('method_error', { 
+        method: methodName, 
+        duration,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw error;
+    }
+  } as T;
+  
+  return descriptor;
+}
+
+// =============================================================================
+// CLASSE PRINCIPALE DE L'AGENT
+// =============================================================================
+
+/**
+ * Agent {{ agent_name }} - {{ description }}
+ * 
+ * @remarks
+ * Cet agent implémente {{ functionality_description }} avec support pour :
+ * - TypeScript strict
+ * - Gestion d'erreurs complète
+ * - Cache intelligent
+ * - Monitoring de performance
+ * - Conformité accessibilité
+ * - Internationalisation
+ * 
+ * @example
+ * ```typescript
+ * const agent = new {{ agent_name }}({
+ *   apiEndpoint: 'https://api.example.com',
+ *   enableCaching: true
+ * });
+ * 
+ * const result = await agent.execute({
+ *   // données d'entrée
+ * });
+ * ```
+ */
+export class {{ agent_name }} {
+  // ===========================================================================
+  // PROPRIÉTÉS STATIQUES
+  // ===========================================================================
+  
+  /** Version de l'agent */
+  public static readonly VERSION = '{{ version }}';
+  
+  /** Nom de l'agent */
+  public static readonly AGENT_NAME = '{{ agent_name }}';
+  
+  /** Configuration par défaut */
+  private static readonly DEFAULT_CONFIG: Required<{{ agent_name }}Config> = {
+    apiEndpoint: '{{ default_api_endpoint }}',
+    timeoutMs: 30000,
+    maxRetries: 3,
+    enableCaching: true,
+    cacheTTL: 300000, // 5 minutes
+    theme: 'auto',
+    locale: 'en-US',
+    enableTelemetry: true,
+    sampleRate: 0.1,
+    enableEncryption: true,
+    maskSensitiveData: true,
+    
+    // Configuration de base de l'agent
+    agentId: '{{ agent_id }}',
+    environment: 'production',
+    logLevel: 'info',
+    enableMetrics: true
+  };
+  
+  // ===========================================================================
+  // PROPRIÉTÉS D'INSTANCE
+  // ===========================================================================
+  
+  /** Configuration actuelle */
+  private config: Required<{{ agent_name }}Config>;
+  
+  /** État de l'agent */
+  private state: {{ agent_name }}State;
+  
+  /** Cache en mémoire */
+  private cache: Map<string, { data: {{ agent_name }}Output; expiresAt: number }>;
+  
+  /** Écouteurs d'événements */
+  private eventListeners: Map<keyof {{ agent_name }}Events, Set<Function>>;
+  
+  /** AbortController pour les requêtes en cours */
+  private abortController: AbortController | null;
+  
+  /** API client pour les appels réseau */
+  private apiClient: {
+    post: <T>(url: string, data: unknown, options?: RequestInit) => Promise<T>;
+    get: <T>(url: string, options?: RequestInit) => Promise<T>;
+  };
+  
+  // ===========================================================================
+  // CONSTRUCTEUR
+  // ===========================================================================
+  
+  /**
+   * Crée une nouvelle instance de l'agent
+   * 
+   * @param userConfig - Configuration personnalisée (optionnelle)
+   */
+  constructor(userConfig: {{ agent_name }}Config = {}) {
+    // Fusionner la configuration
+    this.config = {
+      ...{{ agent_name }}.DEFAULT_CONFIG,
+      ...userConfig
+    };
+    
+    // Initialiser l'état
+    this.state = {
+      status: {{ agent_name }}Status.IDLE,
+      data: null,
+      error: null,
+      lastUpdated: new Date(),
+      executionCount: 0,
+      cacheStats: {
+        hits: 0,
+        misses: 0,
+        size: 0
+      }
+    };
+    
+    // Initialiser le cache
+    this.cache = new Map();
+    
+    // Initialiser les écouteurs d'événements
+    this.eventListeners = new Map();
+    
+    // Initialiser l'AbortController
+    this.abortController = null;
+    
+    // Configurer le client API
+    this.apiClient = this.createApiClient();
+    
+    // Configurer le monitoring
+    if (this.config.enableTelemetry) {
+      this.setupTelemetry();
+    }
+    
+    // Configurer l'internationalisation
+    i18n.setLocale(this.config.locale);
+    
+    this.emit('status-change', this.state.status);
+  }
+  
+  // ===========================================================================
+  // MÉTHODES PUBLIQUES
+  // ===========================================================================
+  
+  /**
+   * Exécute l'agent avec les données d'entrée fournies
+   * 
+   * @param input - Données d'entrée
+   * @param options - Options d'exécution (optionnelles)
+   * @returns Résultat de l'exécution
+   * 
+   * @throws {{ agent_name }}ValidationError - Si les données d'entrée sont invalides
+   * @throws {{ agent_name }}NetworkError - En cas d'erreur réseau
+   * @throws {{ agent_name }}TimeoutError - En cas de timeout
+   * @throws {{ agent_name }}Error - Pour toutes les autres erreurs
+   */
+  @instrumentMethod
+  @validateInput(validate{{ agent_name }}Input)
+  @auditTrail('{{ agent_name }}.execute')
+  public async execute(
+    input: {{ agent_name }}Input,
+    options: {{ agent_name }}ExecutionOptions = {}
+  ): Promise<{{ agent_name }}Output> {
+    const executionId = this.generateExecutionId();
+    const startTime = performance.now();
+    
+    try {
+      // Émettre l'événement de début
+      this.emit('execution-start', { input, options });
+      
+      // Mettre à jour l'état
+      this.updateState({ 
+        status: {{ agent_name }}Status.PROCESSING,
+        error: null
+      });
+      
+      // Vérifier le cache (si activé et non bypassé)
+      let result: {{ agent_name }}Output;
+      const cacheKey = generateCacheKey(input);
+      
+      if (this.config.enableCaching && !options.bypassCache) {
+        const cached = this.cache.get(cacheKey);
+        if (cached && cached.expiresAt > Date.now()) {
+          this.state.cacheStats.hits++;
+          this.emit('cache-hit', { key: cacheKey, data: cached.data });
+          result = cached.data;
+          
+          // Mettre à jour les métadonnées
+          result.metadata.cacheHit = true;
+          result.metadata.executionId = executionId;
+          result.metadata.processingTimeMs = performance.now() - startTime;
+          result.metadata.timestamp = new Date().toISOString();
+          
+          this.updateState({ 
+            status: {{ agent_name }}Status.SUCCESS,
+            data: result,
+            lastUpdated: new Date()
+          });
+          
+          this.emit('execution-success', { 
+            output: result, 
+            durationMs: result.metadata.processingTimeMs 
+          });
+          
+          return result;
+        }
+        this.state.cacheStats.misses++;
+        this.emit('cache-miss', { key: cacheKey });
+      }
+      
+      // Créer un nouvel AbortController pour cette exécution
+      this.abortController = new AbortController();
+      const timeoutMs = options.timeoutMs || this.config.timeoutMs;
+      
+      // Configurer le timeout
+      const timeoutId = setTimeout(() => {
+        if (this.abortController) {
+          this.abortController.abort(new {{ agent_name }}TimeoutError(
+            `Execution timeout after ${timeoutMs}ms`,
+            timeoutMs
+          ));
+        }
+      }, timeoutMs);
+      
+      try {
+        // Exécuter la logique métier avec retry
+        result = await withRetry(
+          () => this.executeBusinessLogic(input, executionId, options),
+          {
+            maxRetries: this.config.maxRetries,
+            retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000)
+          }
+        );
+        
+      } finally {
+        clearTimeout(timeoutId);
+        this.abortController = null;
+      }
+      
+      // Calculer le temps de traitement
+      const processingTimeMs = performance.now() - startTime;
+      result.metadata.processingTimeMs = processingTimeMs;
+      
+      // Mettre en cache le résultat (si activé)
+      if (this.config.enableCaching) {
+        this.cache.set(cacheKey, {
+          data: result,
+          expiresAt: Date.now() + this.config.cacheTTL
+        });
+        this.state.cacheStats.size = this.cache.size;
+      }
+      
+      // Mettre à jour l'état
+      this.updateState({
+        status: {{ agent_name }}Status.SUCCESS,
+        data: result,
+        lastUpdated: new Date(),
+        executionCount: this.state.executionCount + 1
+      });
+      
+      // Émettre l'événement de succès
+      this.emit('execution-success', { 
+        output: result, 
+        durationMs: processingTimeMs 
+      });
+      
+      return result;
+      
+    } catch (error) {
+      const processingTimeMs = performance.now() - startTime;
+      
+      // Gérer l'erreur
+      const agentError = this.normalizeError(error);
+      
+      // Mettre à jour l'état
+      this.updateState({
+        status: {{ agent_name }}Status.ERROR,
+        error: agentError,
+        lastUpdated: new Date()
+      });
+      
+      // Émettre l'événement d'erreur
+      this.emit('execution-error', { 
+        error: agentError, 
+        input 
+      });
+      
+      throw agentError;
+    }
+  }
+  
+  /**
+   * Exécute l'agent en batch
+   * 
+   * @param inputs - Liste des données d'entrée
+   * @param options - Options d'exécution (optionnelles)
+   * @returns Liste des résultats
+   */
+  public async executeBatch(
+    inputs: {{ agent_name }}Input[],
+    options: {{ agent_name }}ExecutionOptions = {}
+  ): Promise<{{ agent_name }}Output[]> {
+    const maxConcurrency = options.priority === 'high' ? 3 : 1;
+    const semaphore = new Semaphore(maxConcurrency);
+    const results: {{ agent_name }}Output[] = [];
+    const errors: Error[] = [];
+    
+    const executeWithSemaphore = async (input: {{ agent_name }}Input): Promise<void> => {
+      await semaphore.acquire();
+      try {
+        const result = await this.execute(input, options);
+        results.push(result);
+      } catch (error) {
+        errors.push(error as Error);
+      } finally {
+        semaphore.release();
+      }
+    };
+    
+    await Promise.all(inputs.map(executeWithSemaphore));
+    
+    if (errors.length > 0) {
+      console.warn(`${errors.length} executions failed in batch`, errors);
+    }
+    
+    return results;
+  }
+  
+  /**
+   * Réinitialise l'état de l'agent
+   */
+  public reset(): void {
+    this.updateState({
+      status: {{ agent_name }}Status.IDLE,
+      data: null,
+      error: null,
+      executionCount: 0,
+      cacheStats: {
+        hits: 0,
+        misses: 0,
+        size: 0
+      }
+    });
+    
+    // Nettoyer le cache
+    this.cache.clear();
+    
+    // Annuler les requêtes en cours
+    if (this.abortController) {
+      this.abortController.abort();
+      this.abortController = null;
+    }
+  }
+  
+  /**
+   * Rafraîchit les données (ré-exécute avec les dernières entrées)
+   */
+  public async refresh(): Promise<{{ agent_name }}Output> {
+    if (!this.state.data) {
+      throw new {{ agent_name }}Error('No data to refresh');
+    }
+    
+    // Extraire l'input original des métadonnées (si stocké)
+    const lastInput = this.state.data.metadata as unknown as {{ agent_name }}Input;
+    return this.execute(lastInput, { bypassCache: true });
+  }
+  
+  /**
+   * Vérifie la santé de l'agent
+   */
+  public async healthCheck(): Promise<{
+    status: 'healthy' | 'degraded' | 'unhealthy';
+    checks: Record<string, boolean>;
+    timestamp: string;
+    version: string;
+  }> {
+    const checks: Record<string, boolean> = {
+      agentInitialized: true,
+      cacheOperational: this.cache instanceof Map,
+      apiReachable: false,
+      memoryUsage: this.getMemoryUsage() < 0.8 // Moins de 80% d'utilisation
+    };
+    
+    try {
+      // Vérifier l'accessibilité de l'API
+      const response = await fetch(`${this.config.apiEndpoint}/health`, {
+        signal: AbortSignal.timeout(5000)
+      });
+      checks.apiReachable = response.ok;
+    } catch {
+      checks.apiReachable = false;
+    }
+    
+    const allHealthy = Object.values(checks).every(check => check);
+    const someHealthy = Object.values(checks).some(check => check);
+    
+    return {
+      status: allHealthy ? 'healthy' : someHealthy ? 'degraded' : 'unhealthy',
+      checks,
+      timestamp: new Date().toISOString(),
+      version: {{ agent_name }}.VERSION
+    };
+  }
+  
+  /**
+   * Récupère les métriques de performance
+   */
+  public getMetrics(): PerformanceMetrics {
+    return {
+      executionCount: this.state.executionCount,
+      averageProcessingTime: this.calculateAverageProcessingTime(),
+      cacheHitRate: this.state.cacheStats.hits / 
+                   (this.state.cacheStats.hits + this.state.cacheStats.misses) || 0,
+      errorRate: this.calculateErrorRate(),
+      lastExecutionTime: this.state.lastUpdated,
+      memoryUsage: this.getMemoryUsage()
+    };
+  }
+  
+  /**
+   * Abonne un écouteur à un événement
+   */
+  public on<K extends keyof {{ agent_name }}Events>(
+    event: K,
+    listener: (data: {{ agent_name }}Events[K]) => void
+  ): () => void {
+    if (!this.eventListeners.has(event)) {
+      this.eventListeners.set(event, new Set());
+    }
+    
+    this.eventListeners.get(event)!.add(listener);
+    
+    // Retourner une fonction de désabonnement
+    return () => {
+      this.eventListeners.get(event)?.delete(listener);
+    };
+  }
+  
+  /**
+   * Désabonne tous les écouteurs d'un événement
+   */
+  public off<K extends keyof {{ agent_name }}Events>(event: K): void {
+    this.eventListeners.delete(event);
+  }
+  
+  // ===========================================================================
+  // MÉTHODES PRIVÉES
+  // ===========================================================================
+  
+  /**
+   * Exécute la logique métier principale
+   */
+  @measurePerformance('business_logic')
+  private async executeBusinessLogic(
+    input: {{ agent_name }}Input,
+    executionId: string,
+    options: {{ agent_name }}ExecutionOptions
+  ): Promise<{{ agent_name }}Output> {
+    // Logique métier spécifique à l'agent
+    // Cette méthode doit être implémentée selon les besoins
+    
+    // Exemple d'implémentation:
+    // 1. Prétraitement des données
+    const processedData = await this.preprocessInput(input);
+    
+    // 2. Application des règles métier
+    const businessRulesResult = await this.applyBusinessRules(processedData);
+    
+    // 3. Appel API (si nécessaire)
+    const apiResult = await this.callExternalApi(businessRulesResult);
+    
+    // 4. Post-traitement
+    const finalResult = await this.postprocessResult(apiResult);
+    
+    // 5. Génération de la sortie
+    return this.generateOutput(finalResult, executionId);
+  }
+  
+  /**
+   * Prétraite les données d'entrée
+   */
+  private async preprocessInput(input: {{ agent_name }}Input): Promise<unknown> {
+    // Implémentation spécifique
+    return input;
+  }
+  
+  /**
+   * Applique les règles métier
+   */
+  private async applyBusinessRules(data: unknown): Promise<unknown> {
+    // Implémentation spécifique
+    return data;
+  }
+  
+  /**
+   * Appelle l'API externe
+   */
+  private async callExternalApi(data: unknown): Promise<unknown> {
+    if (!this.config.apiEndpoint) {
+      throw new {{ agent_name }}ConfigurationError('API endpoint not configured');
+    }
+    
+    try {
+      const response = await this.apiClient.post<unknown>(
+        `${this.config.apiEndpoint}/process`,
+        data,
+        {
+          signal: this.abortController?.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Execution-Id': this.generateExecutionId()
+          }
+        }
+      );
+      
+      return response;
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new {{ agent_name }}TimeoutError('API call aborted');
+      }
+      
+      throw new {{ agent_name }}NetworkError(
+        `API call failed: ${error instanceof Error ? error.message : String(error)}`,
+        (error as any)?.status,
+        this.config.apiEndpoint
+      );
+    }
+  }
+  
+  /**
+   * Post-traite les résultats
+   */
+  private async postprocessResult(data: unknown): Promise<unknown> {
+    // Implémentation spécifique
+    return data;
+  }
+  
+  /**
+   * Génère la sortie structurée
+   */
+  private generateOutput(data: unknown, executionId: string): {{ agent_name }}Output {
+    return {
+      data: data as {{ agent_name }}Output['data'],
+      metadata: {
+        executionId,
+        agentVersion: {{ agent_name }}.VERSION,
+        processingTimeMs: 0, // Serra mis à jour par l'appelant
+        timestamp: new Date().toISOString()
+      }
+    };
+  }
+  
+  /**
+   * Crée le client API
+   */
+  private createApiClient() {
+    return {
+      post: async <T>(url: string, data: unknown, options: RequestInit = {}): Promise<T> => {
+        const response = await fetch(url, {
+          method: 'POST',
+          body: JSON.stringify(data),
+          headers: {
+            'Content-Type': 'application/json',
+            ...options.headers
+          },
+          signal: options.signal,
+          ...options
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return response.json() as Promise<T>;
+      },
+      
+      get: async <T>(url: string, options: RequestInit = {}): Promise<T> => {
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: options.headers,
+          signal: options.signal,
+          ...options
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return response.json() as Promise<T>;
+      }
+    };
+  }
+  
+  /**
+   * Configure la télémétrie
+   */
+  private setupTelemetry(): void {
+    // Configuration des métriques
+    trackMetrics('agent_initialized', {
+      agent: {{ agent_name }}.AGENT_NAME,
+      version: {{ agent_name }}.VERSION,
+      config: maskSensitiveData(this.config)
+    });
+    
+    // Écouter les événements pour la télémétrie
+    this.on('execution-success', ({ output, durationMs }) => {
+      trackMetrics('execution_success', {
+        agent: {{ agent_name }}.AGENT_NAME,
+        durationMs,
+        outputSize: JSON.stringify(output).length
+      });
+    });
+    
+    this.on('execution-error', ({ error }) => {
+      trackMetrics('execution_error', {
+        agent: {{ agent_name }}.AGENT_NAME,
+        errorCode: error instanceof {{ agent_name }}Error ? error.code : 'UNKNOWN'
+      });
+    });
+  }
+  
+  /**
+   * Normalise les erreurs
+   */
+  private normalizeError(error: unknown): {{ agent_name }}Error {
+    if (error instanceof {{ agent_name }}Error) {
+      return error;
+    }
+    
+    if (error instanceof Error) {
+      return new {{ agent_name }}Error(error.message);
+    }
+    
+    return new {{ agent_name }}Error(String(error));
+  }
+  
+  /**
+   * Met à jour l'état de l'agent
+   */
+  private updateState(updates: Partial<{{ agent_name }}State>): void {
+    const oldStatus = this.state.status;
+    
+    this.state = {
+      ...this.state,
+      ...updates
+    };
+    
+    // Émettre l'événement de changement de statut si nécessaire
+    if (updates.status && updates.status !== oldStatus) {
+      this.emit('status-change', updates.status);
+    }
+  }
+  
+  /**
+   * Émet un événement
+   */
+  private emit<K extends keyof {{ agent_name }}Events>(
+    event: K,
+    data: {{ agent_name }}Events[K]
+  ): void {
+    const listeners = this.eventListeners.get(event);
+    if (listeners) {
+      listeners.forEach(listener => {
+        try {
+          listener(data);
+        } catch (error) {
+          console.error(`Error in event listener for ${event}:`, error);
+        }
+      });
+    }
+  }
+  
+  /**
+   * Génère un ID d'exécution unique
+   */
+  private generateExecutionId(): string {
+    return `{{ agent_name_snake }}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+  
+  /**
+   * Calcule le temps de traitement moyen
+   */
+  private calculateAverageProcessingTime(): number {
+    // Implémentation simplifiée
+    return this.state.executionCount > 0 ? 100 : 0; // Valeur par défaut
+  }
+  
+  /**
+   * Calcule le taux d'erreur
+   */
+  private calculateErrorRate(): number {
+    // Implémentation simplifiée
+    return 0;
+  }
+  
+  /**
+   * Récupère l'utilisation mémoire
+   */
+  private getMemoryUsage(): number {
+    if ('memory' in performance) {
+      const memory = (performance as any).memory;
+      return memory.usedJSHeapSize / memory.jsHeapSizeLimit;
+    }
+    return 0;
+  }
+}
+
+// =============================================================================
+// HOOKS REACT
+// =============================================================================
+
+{% if has_react %}
+/**
+ * Contexte React pour l'agent
+ */
+const {{ agent_name }}Context = createContext<{{ agent_name }} | null>(null);
+
+/**
+ * Provider React pour l'agent
+ */
+export const {{ agent_name }}Provider: React.FC<{
+  config?: {{ agent_name }}Config;
+  children: React.ReactNode;
+}> = ({ config, children }) => {
+  const agent = useMemo(() => new {{ agent_name }}(config), [config]);
+  
+  useEffect(() => {
+    return () => {
+      agent.reset();
+    };
+  }, [agent]);
+  
+  return (
+    <{{ agent_name }}Context.Provider value={agent}>
+      {children}
+    </{{ agent_name }}Context.Provider>
+  );
+};
+
+/**
+ * Hook React pour utiliser l'agent
+ */
+export const use{{ agent_name }} = (): Use{{ agent_name }}Return => {
+  const agent = useContext({{ agent_name }}Context);
+  const [state, setState] = useState<Omit<{{ agent_name }}State, 'cacheStats'>>({
+    status: {{ agent_name }}Status.IDLE,
+    data: null,
+    error: null,
+    lastUpdated: new Date(),
+    executionCount: 0
+  });
+  const [cacheStats, setCacheStats] = useState<{{ agent_name }}State['cacheStats']>({
+    hits: 0,
+    misses: 0,
+    size: 0
+  });
+  
+  if (!agent) {
+    throw new Error('use{{ agent_name }} must be used within a {{ agent_name }}Provider');
+  }
+  
+  // Écouter les changements d'état
+  useEffect(() => {
+    const unsubscribeStatus = agent.on('status-change', (status) => {
+      setState(prev => ({ ...prev, status }));
+    });
+    
+    const unsubscribeSuccess = agent.on('execution-success', ({ output }) => {
+      setState(prev => ({
+        ...prev,
+        status: {{ agent_name }}Status.SUCCESS,
+        data: output,
+        error: null,
+        lastUpdated: new Date(),
+        executionCount: prev.executionCount + 1
+      }));
+    });
+    
+    const unsubscribeError = agent.on('execution-error', ({ error }) => {
+      setState(prev => ({
+        ...prev,
+        status: {{ agent_name }}Status.ERROR,
+        error,
+        lastUpdated: new Date()
+      }));
+    });
+    
+    const unsubscribeCache = agent.on('cache-hit', () => {
+      setCacheStats(prev => ({ ...prev, hits: prev.hits + 1 }));
+    });
+    
+    return () => {
+      unsubscribeStatus();
+      unsubscribeSuccess();
+      unsubscribeError();
+      unsubscribeCache();
+    };
+  }, [agent]);
+  
+  // Mémoïser les valeurs dérivées
+  const isLoading = useMemo(() => 
+    state.status === {{ agent_name }}Status.LOADING || 
+    state.status === {{ agent_name }}Status.PROCESSING, 
+    [state.status]
+  );
+  
+  const isError = useMemo(() => 
+    state.status === {{ agent_name }}Status.ERROR, 
+    [state.status]
+  );
+  
+  const isSuccess = useMemo(() => 
+    state.status === {{ agent_name }}Status.SUCCESS, 
+    [state.status]
+  );
+  
+  // Actions
+  const execute = useCallback(async (
+    input: {{ agent_name }}Input,
+    options?: {{ agent_name }}ExecutionOptions
+  ) => {
+    try {
+      await agent.execute(input, options);
+    } catch (error) {
+      // L'erreur est déjà gérée par les écouteurs d'événements
+      console.error('Execution failed:', error);
+    }
+  }, [agent]);
+  
+  const reset = useCallback(() => {
+    agent.reset();
+    setState({
+      status: {{ agent_name }}Status.IDLE,
+      data: null,
+      error: null,
+      lastUpdated: new Date(),
+      executionCount: 0
+    });
+    setCacheStats({
+      hits: 0,
+      misses: 0,
+      size: 0
+    });
+  }, [agent]);
+  
+  const refresh = useCallback(async () => {
+    try {
+      await agent.refresh();
+    } catch (error) {
+      console.error('Refresh failed:', error);
+    }
+  }, [agent]);
+  
+  return {
+    // État
+    status: state.status,
+    data: state.data,
+    error: state.error,
+    isLoading,
+    isError,
+    isSuccess,
+    
+    // Actions
+    execute: useMemoizedFn(execute),
+    reset: useMemoizedFn(reset),
+    refresh: useMemoizedFn(refresh),
+    
+    // Métadonnées
+    executionCount: state.executionCount,
+    lastUpdated: state.lastUpdated,
+    cacheStats
+  };
+};
+
+/**
+ * Composant React avec gestion d'erreurs
+ */
+export const {{ agent_name }}Component: React.FC<{
+  input: {{ agent_name }}Input;
+  onSuccess?: (output: {{ agent_name }}Output) => void;
+  onError?: (error: Error) => void;
+  children?: (props: Use{{ agent_name }}Return) => React.ReactNode;
+}> = ({ input, onSuccess, onError, children }) => {
+  const agent = use{{ agent_name }}();
+  
+  // Exécuter automatiquement quand l'input change
+  useEffect(() => {
+    if (input) {
+      agent.execute(input).then(() => {
+        if (agent.data && onSuccess) {
+          onSuccess(agent.data);
+        }
+      }).catch((error) => {
+        if (onError) {
+          onError(error);
+        }
+      });
+    }
+  }, [input, agent, onSuccess, onError]);
+  
+  return (
+    <ErrorBoundary
+      fallback={<div>Une erreur est survenue</div>}
+      onError={onError}
+    >
+      {children ? children(agent) : (
+        <div>
+          {agent.isLoading && <div>Chargement...</div>}
+          {agent.isError && <div>Erreur: {agent.error?.message}</div>}
+          {agent.isSuccess && <div>Succès!</div>}
+        </div>
+      )}
+    </ErrorBoundary>
+  );
+};
+{% endif %}
+
+// =============================================================================
+// COMPOSITION API VUE.JS
+// =============================================================================
+
+{% if has_vue %}
+/**
+ * Composition API pour Vue.js
+ */
+export const use{{ agent_name }} = (config?: {{ agent_name }}Config): Use{{ agent_name }}Composition => {
+  const agent = ref<{{ agent_name }} | null>(null);
+  
+  // État réactif
+  const status = ref<{{ agent_name }}Status>({{ agent_name }}Status.IDLE);
+  const data = ref<{{ agent_name }}Output | null>(null);
+  const error = ref<Error | null>(null);
+  const lastUpdated = ref<Date | null>(null);
+  const executionCount = ref(0);
+  const cacheStats = ref<{{ agent_name }}State['cacheStats']>({
+    hits: 0,
+    misses: 0,
+    size: 0
+  });
+  
+  // Valeurs calculées
+  const isLoading = computed(() => 
+    status.value === {{ agent_name }}Status.LOADING || 
+    status.value === {{ agent_name }}Status.PROCESSING
+  );
+  
+  const isError = computed(() => 
+    status.value === {{ agent_name }}Status.ERROR
+  );
+  
+  const isSuccess = computed(() => 
+    status.value === {{ agent_name }}Status.SUCCESS
+  );
+  
+  // Initialiser l'agent
+  onMounted(() => {
+    agent.value = new {{ agent_name }}(config);
+    
+    // Écouter les événements
+    const unsubscribeStatus = agent.value.on('status-change', (newStatus) => {
+      status.value = newStatus;
+    });
+    
+    const unsubscribeSuccess = agent.value.on('execution-success', ({ output }) => {
+      status.value = {{ agent_name }}Status.SUCCESS;
+      data.value = output;
+      error.value = null;
+      lastUpdated.value = new Date();
+      executionCount.value++;
+    });
+    
+    const unsubscribeError = agent.value.on('execution-error', ({ error: err }) => {
+      status.value = {{ agent_name }}Status.ERROR;
+      error.value = err;
+      lastUpdated.value = new Date();
+    });
+    
+    const unsubscribeCache = agent.value.on('cache-hit', () => {
+      cacheStats.value.hits++;
+    });
+    
+    const unsubscribeCacheMiss = agent.value.on('cache-miss', () => {
+      cacheStats.value.misses++;
+    });
+    
+    // Nettoyer à la destruction
+    onUnmounted(() => {
+      unsubscribeStatus();
+      unsubscribeSuccess();
+      unsubscribeError();
+      unsubscribeCache();
+      unsubscribeCacheMiss();
+      
+      if (agent.value) {
+        agent.value.reset();
+      }
+    });
+  });
+  
+  // Actions
+  const execute = async (
+    input: {{ agent_name }}Input,
+    options?: {{ agent_name }}ExecutionOptions
+  ): Promise<void> => {
+    if (!agent.value) return;
+    
+    try {
+      await agent.value.execute(input, options);
+    } catch (err) {
+      // L'erreur est déjà gérée par les écouteurs d'événements
+      console.error('Execution failed:', err);
+    }
+  };
+  
+  const reset = (): void => {
+    if (agent.value) {
+      agent.value.reset();
+    }
+    
+    status.value = {{ agent_name }}Status.IDLE;
+    data.value = null;
+    error.value = null;
+    lastUpdated.value = null;
+    executionCount.value = 0;
+    cacheStats.value = {
+      hits: 0,
+      misses: 0,
+      size: 0
+    };
+  };
+  
+  const refresh = async (): Promise<void> => {
+    if (!agent.value) return;
+    
+    try {
+      await agent.value.refresh();
+    } catch (err) {
+      console.error('Refresh failed:', err);
+    }
+  };
+  
+  return {
+    // Réactifs
+    status,
+    data,
+    error,
+    isLoading,
+    isError,
+    isSuccess,
+    
+    // Actions
+    execute,
+    reset,
+    refresh,
+    
+    // Métadonnées
+    executionCount,
+    lastUpdated,
+    cacheStats
+  };
+};
+
+/**
+ * Plugin Vue.js pour l'agent
+ */
+export const {{ agent_name }}Plugin = {
+  install(app: any, config?: {{ agent_name }}Config) {
+    const agent = new {{ agent_name }}(config);
+    
+    // Fournir l'agent globalement
+    app.provide('{{ agent_name_snake }}', agent);
+    
+    // Mixin global (optionnel)
+    app.mixin({
+      beforeCreate() {
+        this.${{ agent_name_snake }} = agent;
+      }
+    });
+    
+    // Propriété globale
+    app.config.globalProperties.${{ agent_name_snake }} = agent;
+  }
+};
+{% endif %}
+
+// =============================================================================
+// COMPOSANTS UI (GÉNÉRIQUES)
+// =============================================================================
+
+{% if has_ui_components %}
+/**
+ * Composant de statut de l'agent
+ */
+export const {{ agent_name }}StatusBadge: React.FC<{
+  status: {{ agent_name }}Status;
+  size?: 'sm' | 'md' | 'lg';
+}> = ({ status, size = 'md' }) => {
+  const statusConfig = {
+    [{{ agent_name }}Status.IDLE]: {
+      label: 'Inactif',
+      color: 'gray',
+      icon: '⏸️'
+    },
+    [{{ agent_name }}Status.LOADING]: {
+      label: 'Chargement',
+      color: 'blue',
+      icon: '⏳'
+    },
+    [{{ agent_name }}Status.PROCESSING]: {
+      label: 'Traitement',
+      color: 'yellow',
+      icon: '⚡'
+    },
+    [{{ agent_name }}Status.SUCCESS]: {
+      label: 'Succès',
+      color: 'green',
+      icon: '✅'
+    },
+    [{{ agent_name }}Status.ERROR]: {
+      label: 'Erreur',
+      color: 'red',
+      icon: '❌'
+    },
+    [{{ agent_name }}Status.DEGRADED]: {
+      label: 'Dégradé',
+      color: 'orange',
+      icon: '⚠️'
+    }
+  };
+  
+  const config = statusConfig[status];
+  const sizeClasses = {
+    sm: 'px-2 py-1 text-xs',
+    md: 'px-3 py-1.5 text-sm',
+    lg: 'px-4 py-2 text-base'
+  };
+  
+  return (
+    <span 
+      className={`inline-flex items-center rounded-full ${sizeClasses[size]} bg-${config.color}-100 text-${config.color}-800`}
+      role="status"
+      aria-label={`Statut: ${config.label}`}
+    >
+      <span className="mr-2" aria-hidden="true">{config.icon}</span>
+      {config.label}
+    </span>
+  );
+};
+
+/**
+ * Composant de résultats avec accessibilité
+ */
+export const {{ agent_name }}Results: React.FC<{
+  output: {{ agent_name }}Output;
+  onRecommendationClick?: (recommendation: {{ agent_name }}Output['recommendations'][0]) => void;
+}> = ({ output, onRecommendationClick }) => {
+  return (
+    <div 
+      className="{{ agent_name_snake }}-results"
+      role="region"
+      aria-label="Résultats de l'agent"
+    >
+      {/* Métadonnées */}
+      <div className="metadata" aria-live="polite">
+        <p>Temps de traitement: {output.metadata.processingTimeMs}ms</p>
+        <p>Cache: {output.metadata.cacheHit ? 'Hit' : 'Miss'}</p>
+      </div>
+      
+      {/* Anomalies */}
+      {output.anomalies && output.anomalies.length > 0 && (
+        <div 
+          className="anomalies"
+          role="alert"
+          aria-label={`${output.anomalies.length} anomalies détectées`}
+        >
+          <h3>Anomalies détectées</h3>
+          <ul>
+            {output.anomalies.map(anomaly => (
+              <li 
+                key={anomaly.id}
+                className={`severity-${anomaly.severity}`}
+              >
+                <strong>{anomaly.type}:</strong> {anomaly.message}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      
+      {/* Recommandations */}
+      {output.recommendations && output.recommendations.length > 0 && (
+        <div className="recommendations">
+          <h3>Recommandations</h3>
+          <ul>
+            {output.recommendations.map(rec => (
+              <li key={rec.id}>
+                <h4>{rec.title}</h4>
+                <p>{rec.description}</p>
+                <button
+                  onClick={() => onRecommendationClick?.(rec)}
+                  aria-label={`Appliquer la recommandation: ${rec.title}`}
+                >
+                  Appliquer
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
+{% endif %}
+
+// =============================================================================
+// TESTS AVEC JEST/VITEST
+// =============================================================================
+
+/**
+ * Configuration des tests
+ * @path vitest.config.ts
+ */
+// {
+//   test: {
+//     globals: true,
+//     environment: '{{ test_environment }}',
+//     setupFiles: ['./tests/setup.ts'],
+//     include: ['**/*.{test,spec}.{ts,tsx}'],
+//     exclude: ['node_modules', 'dist'],
+//     coverage: {
+//       provider: 'v8',
+//       reporter: ['text', 'json', 'html'],
+//       exclude: [
+//         'node_modules/',
+//         'dist/',
+//         '**/*.d.ts',
+//         '**/*.config.*',
+//         '**/index.ts'
+//       ],
+//       thresholds: {
+//         lines: 80,
+//         functions: 80,
+//         branches: 80,
+//         statements: 80
+//       }
+//     }
+//   }
+// }
+
+/**
+ * Tests unitaires pour l'agent
+ * @path tests/{{ agent_name_snake }}.test.ts
+ */
+describe('{{ agent_name }}', () => {
+  let agent: {{ agent_name }};
+  let mockFetch: jest.Mock;
+  
+  beforeEach(() => {
+    // Mock fetch
+    mockFetch = jest.fn();
+    global.fetch = mockFetch;
+    
+    // Créer l'agent avec une configuration de test
+    agent = new {{ agent_name }}({
+      apiEndpoint: 'https://test-api.example.com',
+      enableCaching: false,
+      enableTelemetry: false
+    });
+  });
+  
+  afterEach(() => {
+    jest.clearAllMocks();
+    agent.reset();
+  });
+  
+  describe('constructor', () => {
+    it('should initialize with default config', () => {
+      const defaultAgent = new {{ agent_name }}();
+      expect(defaultAgent).toBeDefined();
+    });
+    
+    it('should merge user config with defaults', () => {
+      const customAgent = new {{ agent_name }}({
+        timeoutMs: 5000,
+        theme: 'dark'
+      });
+      
+      expect(customAgent).toBeDefined();
+    });
+  });
+  
+  describe('execute', () => {
+    it('should process valid input successfully', async () => {
+      // Mock de la réponse API
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ result: 'success' })
+      });
+      
+      const input: {{ agent_name }}Input = {
+        {% for field in input_fields %}
+        {% if field.required %}
+        {{ field.name }}: {{ field.test_value }},
+        {% endif %}
+        {% endfor %}
+      };
+      
+      const result = await agent.execute(input);
+      
+      expect(result).toBeDefined();
+      expect(result.metadata.agentVersion).toBe({{ agent_name }}.VERSION);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+    
+    it('should throw validation error for invalid input', async () => {
+      const invalidInput = {} as {{ agent_name }}Input;
+      
+      await expect(agent.execute(invalidInput)).rejects.toThrow(
+        {{ agent_name }}ValidationError
+      );
+    });
+    
+    it('should handle network errors', async () => {
+      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+      
+      const input: {{ agent_name }}Input = {
+        {% for field in input_fields %}
+        {% if field.required %}
+        {{ field.name }}: {{ field.test_value }},
+        {% endif %}
+        {% endfor %}
+      };
+      
+      await expect(agent.execute(input)).rejects.toThrow(
+        {{ agent_name }}NetworkError
+      );
+    });
+    
+    it('should respect timeout', async () => {
+      mockFetch.mockImplementationOnce(() => 
+        new Promise(resolve => setTimeout(resolve, 100))
+      );
+      
+      const input: {{ agent_name }}Input = {
+        {% for field in input_fields %}
+        {% if field.required %}
+        {{ field.name }}: {{ field.test_value }},
+        {% endif %}
+        {% endfor %}
+      };
+      
+      await expect(
+        agent.execute(input, { timeoutMs: 50 })
+      ).rejects.toThrow({{ agent_name }}TimeoutError);
+    });
+  });
+  
+  describe('caching', () => {
+    it('should cache results when enabled', async () => {
+      const agentWithCache = new {{ agent_name }}({
+        enableCaching: true
+      });
+      
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({ result: 'cached' })
+      });
+      
+      const input: {{ agent_name }}Input = {
+        {% for field in input_fields %}
+        {% if field.required %}
+        {{ field.name }}: {{ field.test_value }},
+        {% endif %}
+        {% endfor %}
+      };
+      
+      // Premier appel - API
+      await agentWithCache.execute(input);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      
+      // Second appel - Cache
+      await agentWithCache.execute(input);
+      expect(mockFetch).toHaveBeenCalledTimes(1); // Toujours 1
+    });
+    
+    it('should bypass cache when requested', async () => {
+      const agentWithCache = new {{ agent_name }}({
+        enableCaching: true
+      });
+      
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({ result: 'fresh' })
+      });
+      
+      const input: {{ agent_name }}Input = {
+        {% for field in input_fields %}
+        {% if field.required %}
+        {{ field.name }}: {{ field.test_value }},
+        {% endif %}
+        {% endfor %}
+      };
+      
+      // Premier appel
+      await agentWithCache.execute(input);
+      
+      // Second appel avec bypass
+      await agentWithCache.execute(input, { bypassCache: true });
+      
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+  });
+  
+  describe('error handling', () => {
+    it('should normalize unknown errors', () => {
+      const error = agent['normalizeError']('string error');
+      expect(error).toBeInstanceOf({{ agent_name }}Error);
+    });
+    
+    it('should preserve existing agent errors', () => {
+      const originalError = new {{ agent_name }}ValidationError('Test');
+      const normalized = agent['normalizeError'](originalError);
+      expect(normalized).toBe(originalError);
+    });
+  });
+});
+
+{% if has_react %}
+/**
+ * Tests React
+ * @path tests/{{ agent_name_snake }}.react.test.tsx
+ */
+describe('{{ agent_name }} React hooks', () => {
+  it('should provide agent context', () => {
+    const { result } = renderHook(() => use{{ agent_name }}(), {
+      wrapper: ({ children }) => (
+        <{{ agent_name }}Provider config={{}}>
+          {children}
+        </{{ agent_name }}Provider>
+      )
+    });
+    
+    expect(result.current).toBeDefined();
+    expect(result.current.status).toBe({{ agent_name }}Status.IDLE);
+  });
+  
+  it('should update state on execution', async () => {
+    const { result } = renderHook(() => use{{ agent_name }}(), {
+      wrapper: ({ children }) => (
+        <{{ agent_name }}Provider config={{}}>
+          {children}
+        </{{ agent_name }}Provider>
+      )
+    });
+    
+    await act(async () => {
+      await result.current.execute({
+        {% for field in input_fields %}
+        {% if field.required %}
+        {{ field.name }}: {{ field.test_value }},
+        {% endif %}
+        {% endfor %}
+      });
+    });
+    
+    expect(result.current.isLoading).toBe(false);
+  });
+});
+{% endif %}
+
+// =============================================================================
+// UTILITAIRES DE TEST
+// =============================================================================
+
+/**
+ * Sémaphore pour limiter la concurrence
+ */
+class Semaphore {
+  private maxConcurrency: number;
+  private currentConcurrency: number;
+  private queue: Array<() => void>;
+  
+  constructor(maxConcurrency: number) {
+    this.maxConcurrency = maxConcurrency;
+    this.currentConcurrency = 0;
+    this.queue = [];
+  }
+  
+  async acquire(): Promise<void> {
+    if (this.currentConcurrency < this.maxConcurrency) {
+      this.currentConcurrency++;
+      return Promise.resolve();
+    }
+    
+    return new Promise(resolve => {
+      this.queue.push(() => {
+        this.currentConcurrency++;
+        resolve();
+      });
+    });
+  }
+  
+  release(): void {
+    this.currentConcurrency--;
+    
+    if (this.queue.length > 0) {
+      const next = this.queue.shift();
+      next?.();
+    }
+  }
+}
+
+// =============================================================================
+// EXPORTS
+// =============================================================================
+
+export default {{ agent_name }};
+
+/**
+ * Bundle optimization hints
+ * @side-effects-free La classe {{ agent_name }} n'a pas d'effets de bord globaux
+ * @pure Les méthodes utilitaires sont pures
+ * @tree-shakable Toutes les exportations sont nommées pour le tree-shaking
+ */
+
+/*
+ * Configuration Vite pour l'optimisation du bundle
+ * @path vite.config.ts
+ */
+// {
+//   build: {
+//     target: 'es2022',
+//     minify: 'terser',
+//     terserOptions: {
+//       compress: {
+//         pure_funcs: ['console.log'],
+//         drop_console: true,
+//         drop_debugger: true
+//       }
+//     },
+//     rollupOptions: {
+//       output: {
+//         manualChunks: {
+//           vendor: ['react', 'react-dom'],
+//           utils: ['lodash', 'date-fns']
+//         }
+//       }
+//     }
+//   }
+// }
+
+// =============================================================================
+// DOCUMENTATION TYPEDOC
+// =============================================================================
+
+/**
+ * @module {{ agent_name }}
+ * @description {{ description }}
+ * 
+ * @example
+ * ```typescript
+ * import { {{ agent_name }} } from '@microagents/{{ agent_name_snake }}';
+ * 
+ * const agent = new {{ agent_name }}();
+ * const result = await agent.execute({
+ *   // vos données d'entrée
+ * });
+ * ```
+ * 
+ * @see {@link https://docs.microagents.io/agents/{{ agent_name_snake }} Documentation complète}
+ */
+
+// =============================================================================
+// FICHIER GÉNÉRÉ - NE PAS MODIFIER MANUELLEMENT
+// Checksum: {{ checksum }}
+// =============================================================================

@@ -1,0 +1,1143 @@
+# deployment/kubernetes/charts/micro-agents/values.yaml
+## MicroAgents Platform - Production Configuration
+##
+## This file contains all configurable parameters for the MicroAgents Platform.
+## Sensible production defaults are provided, override as needed for your environment.
+
+# ==============================================================================
+# Global Configuration
+# ==============================================================================
+
+global:
+  # Application name and environment
+  appName: "microagents-platform"
+  environment: "production"
+  # Release tracking
+  release:
+    name: "v1.0.0"
+    track: "stable"
+    # Canary deployment settings
+    canary:
+      enabled: false
+      percentage: 10
+      duration: "24h"
+  
+  # Multi-region configuration
+  regions:
+    primary: "eu-west-1"
+    secondary: "us-east-1"
+    enabled: false
+    replication:
+      enabled: false
+      mode: "async"  # async, sync
+      lagThreshold: "30s"
+  
+  # Feature flags
+  features:
+    aiPredictions: true
+    autoRemediation: true
+    costOptimization: true
+    securityScanning: true
+    complianceMonitoring: true
+  
+  # Image configuration
+  image:
+    registry: "registry.microagents.io"
+    pullPolicy: "IfNotPresent"
+    pullSecrets:
+      - name: "docker-registry-secret"
+    # Security scanning for images
+    securityScan:
+      enabled: true
+      schedule: "0 2 * * *"  # Daily at 02:00
+      severityThreshold: "HIGH"
+  
+  # Service account configuration
+  serviceAccount:
+    create: true
+    name: "microagents-service-account"
+    annotations: {}
+    # IAM role for AWS (if using EKS)
+    iamRoleArn: ""
+  
+  # Pod configuration
+  pod:
+    # Annotations applied to all pods
+    annotations: {}
+    # Labels applied to all pods
+    labels: {}
+    # Security context for all pods
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 1000
+      fsGroup: 2000
+      seccompProfile:
+        type: "RuntimeDefault"
+  
+  # Resource defaults for all containers
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "2000m"
+      memory: "2Gi"
+  
+  # Node selection and affinity
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  
+  # Network policies (zero-trust by default)
+  networkPolicy:
+    enabled: true
+    defaultDenyIngress: true
+    defaultDenyEgress: false
+
+# ==============================================================================
+# API Service Configuration
+# ==============================================================================
+
+api:
+  # API server configuration
+  enabled: true
+  replicaCount: 3
+  # Minimum replicas for HA
+  minReplicas: 3
+  maxReplicas: 20
+  
+  # API server image
+  image:
+    repository: "platform/api"
+    tag: "v1.0.0-prod"
+    digest: ""  # For immutable deployments
+  
+  # Service configuration
+  service:
+    type: "ClusterIP"
+    port: 8080
+    # For LoadBalancer/NodePort
+    annotations: {}
+    # Load balancer specific (for AWS/GCP/Azure)
+    loadBalancerIP: ""
+    loadBalancerSourceRanges: []
+  
+  # Ingress configuration
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    hosts:
+      - host: "api.microagents.example.com"
+        paths:
+          - path: "/"
+            pathType: "Prefix"
+    tls:
+      - secretName: "microagents-api-tls"
+        hosts:
+          - "api.microagents.example.com"
+  
+  # API configuration
+  config:
+    # Rate limiting
+    rateLimit:
+      enabled: true
+      requestsPerSecond: 100
+      burst: 50
+    
+    # Request/response settings
+    maxRequestBodySize: "10mb"
+    timeout: "30s"
+    keepAliveTimeout: "15s"
+    
+    # CORS configuration
+    cors:
+      enabled: true
+      allowedOrigins:
+        - "https://app.microagents.example.com"
+        - "https://admin.microagents.example.com"
+      allowedMethods:
+        - "GET"
+        - "POST"
+        - "PUT"
+        - "DELETE"
+        - "OPTIONS"
+      allowedHeaders:
+        - "*"
+      exposedHeaders:
+        - "X-Request-ID"
+        - "X-RateLimit-Limit"
+        - "X-RateLimit-Remaining"
+      allowCredentials: true
+      maxAge: "86400"
+    
+    # GraphQL configuration (if applicable)
+    graphql:
+      enabled: false
+      playground: false
+      introspection: false
+    
+    # OpenAPI/Swagger
+    openapi:
+      enabled: true
+      path: "/docs"
+      # Redoc for better documentation
+      redoc:
+        enabled: true
+        path: "/redoc"
+  
+  # Health checks
+  livenessProbe:
+    httpGet:
+      path: "/health/live"
+      port: 8080
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  
+  readinessProbe:
+    httpGet:
+      path: "/health/ready"
+      port: 8080
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+  
+  # Startup probe for slow-starting applications
+  startupProbe:
+    httpGet:
+      path: "/health/startup"
+      port: 8080
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
+  
+  # Resources specific to API
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+    limits:
+      cpu: "2000m"
+      memory: "2Gi"
+  
+  # Horizontal Pod Autoscaler
+  autoscaling:
+    enabled: true
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+    # Custom metrics for scaling
+    metrics:
+      - type: "Resource"
+        resource:
+          name: "cpu"
+          target:
+            type: "Utilization"
+            averageUtilization: 70
+      - type: "Pods"
+        pods:
+          metric:
+            name: "http_requests_per_second"
+          target:
+            type: "AverageValue"
+            averageValue: "1000"
+    
+    # Scaling behavior
+    behavior:
+      scaleDown:
+        stabilizationWindowSeconds: 300
+        policies:
+          - type: "Percent"
+            value: 10
+            periodSeconds: 60
+      scaleUp:
+        stabilizationWindowSeconds: 60
+        policies:
+          - type: "Percent"
+            value: 100
+            periodSeconds: 60
+  
+  # Pod Disruption Budget
+  pdb:
+    enabled: true
+    minAvailable: "70%"
+    # or use maxUnavailable: "30%"
+
+# ==============================================================================
+# Agent Runtime Configuration
+# ==============================================================================
+
+agents:
+  enabled: true
+  # Total agent count (distributed across replicas)
+  count: 1400
+  
+  # Agent types and distribution
+  distribution:
+    monitoring: 425    # Incident response agents
+    security: 350      # Security and compliance agents
+    cost: 300          # Cost optimization agents
+    performance: 150   # Performance agents
+    infrastructure: 175 # Infrastructure agents
+  
+  # Agent runtime configuration
+  runtime:
+    image:
+      repository: "platform/agent-runtime"
+      tag: "v1.0.0-prod"
+    
+    # Resource per agent (approximate)
+    resourcesPerAgent:
+      cpu: "10m"
+      memory: "50Mi"
+    
+    # Concurrency settings
+    maxConcurrentAgents: 100
+    agentTimeout: "5m"
+    
+    # Retry policies
+    retry:
+      maxAttempts: 3
+      backoffMultiplier: 2.0
+      initialDelay: "1s"
+    
+    # Circuit breaker
+    circuitBreaker:
+      enabled: true
+      failureThreshold: 5
+      resetTimeout: "60s"
+      halfOpenMaxCalls: 1
+  
+  # Agent scheduling
+  scheduler:
+    enabled: true
+    replicaCount: 2
+    
+    # Scheduling policies
+    policies:
+      spreadAcrossNodes: true
+      affinityRules: true
+      priorityClasses:
+        enabled: true
+        value: 100
+      
+    # Cron schedules for periodic agents
+    cron:
+      - name: "cost-optimization"
+        schedule: "0 2 * * *"  # Daily at 02:00
+        agents: ["cost-analyzer", "resource-optimizer"]
+      - name: "security-scan"
+        schedule: "*/30 * * * *"  # Every 30 minutes
+        agents: ["vulnerability-scanner", "compliance-checker"]
+      - name: "performance-review"
+        schedule: "0 * * * *"  # Hourly
+        agents: ["performance-analyzer", "capacity-planner"]
+  
+  # Autoscaling for agent runtime
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 50
+    targetAgentUtilization: 80  # Scale when 80% of agents are busy
+    scaleDownDelay: "10m"
+
+# ==============================================================================
+# Database Configuration (PostgreSQL)
+# ==============================================================================
+
+database:
+  enabled: true
+  # Use external database or deploy with chart
+  external:
+    enabled: false
+    host: ""
+    port: 5432
+    database: "microagents"
+    username: ""
+    password: ""
+    # Connection pooling
+    pool:
+      minConnections: 5
+      maxConnections: 50
+      connectionTimeout: "30s"
+      idleTimeout: "10m"
+  
+  # Internal PostgreSQL deployment
+  postgresql:
+    # Use Bitnami PostgreSQL chart
+    enabled: true
+    # High availability configuration
+    replication:
+      enabled: true
+      readReplicas: 2
+      synchronousCommit: "on"
+    # Performance tuning
+    performance:
+      sharedBuffers: "256MB"
+      effectiveCacheSize: "1GB"
+      maintenanceWorkMem: "64MB"
+      maxConnections: 200
+    # Backup configuration
+    backup:
+      enabled: true
+      schedule: "0 3 * * *"  # Daily at 03:00
+      retention: 30
+      # Point-in-time recovery
+      pitr:
+        enabled: true
+        retention: "7d"
+    # Monitoring
+    monitoring:
+      enabled: true
+      exporter:
+        image: "bitnami/postgres-exporter"
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+  
+  # Database migration
+  migration:
+    enabled: true
+    job:
+      image: "platform/migrate"
+      tag: "v1.0.0"
+      backoffLimit: 3
+    # Rollback configuration
+    rollback:
+      enabled: true
+      window: "24h"  # Allow rollback within 24 hours
+
+# ==============================================================================
+# Cache Configuration (Redis)
+# ==============================================================================
+
+cache:
+  enabled: true
+  # External Redis configuration
+  external:
+    enabled: false
+    host: ""
+    port: 6379
+    password: ""
+    # Sentinel for HA
+    sentinel:
+      enabled: false
+      master: "mymaster"
+      nodes: []
+  
+  # Internal Redis deployment
+  redis:
+    # Use Bitnami Redis chart
+    enabled: true
+    # Architecture: standalone or replication
+    architecture: "replication"
+    # Sentinel for high availability
+    sentinel:
+      enabled: true
+      quorum: 2
+    # Performance settings
+    performance:
+      maxmemory: "2gb"
+      maxmemoryPolicy: "allkeys-lru"
+      timeout: 300
+      tcpKeepalive: 300
+    # Persistence
+    persistence:
+      enabled: true
+      size: "8Gi"
+      # Snapshot schedule
+      snapshot:
+        enabled: true
+        schedule: "*/30 * * * *"  # Every 30 minutes
+  
+  # Redis configuration for different use cases
+  config:
+    session:
+      ttl: "24h"
+      prefix: "session:"
+    rateLimit:
+      ttl: "1h"
+      prefix: "ratelimit:"
+    agentState:
+      ttl: "7d"
+      prefix: "agent:state:"
+    pubsub:
+      enabled: true
+      channels:
+        - "agent-events"
+        - "system-alerts"
+        - "cost-updates"
+
+# ==============================================================================
+# Monitoring & Observability
+# ==============================================================================
+
+monitoring:
+  enabled: true
+  
+  # Prometheus metrics
+  prometheus:
+    enabled: true
+    # Self-scraping configuration
+    serviceMonitor:
+      enabled: true
+      interval: "30s"
+      scrapeTimeout: "25s"
+    # Custom metrics
+    metrics:
+      enabled: true
+      port: 9090
+      path: "/metrics"
+    # Alert rules
+    rules:
+      enabled: true
+      groups:
+        - name: "microagents.rules"
+          interval: "30s"
+          rules: []
+  
+  # Grafana dashboards
+  grafana:
+    enabled: true
+    dashboards:
+      enabled: true
+      # Pre-configured dashboards
+      configMap:
+        - name: "microagents-overview"
+          file: "overview.json"
+        - name: "microagents-performance"
+          file: "performance.json"
+        - name: "microagents-cost"
+          file: "cost.json"
+        - name: "microagents-security"
+          file: "security.json"
+  
+  # Tracing with Jaeger/Tempo
+  tracing:
+    enabled: true
+    provider: "jaeger"  # jaeger, tempo, otel
+    samplingRate: 0.1  # Sample 10% of requests
+    # Jaeger configuration
+    jaeger:
+      collector:
+        host: ""
+        port: 14268
+    # OpenTelemetry configuration
+    opentelemetry:
+      endpoint: ""
+      insecure: false
+  
+  # Log aggregation
+  logging:
+    enabled: true
+    # Fluentd/Fluent Bit
+    fluentbit:
+      enabled: true
+      # Output to Elasticsearch/Loki
+      output:
+        elasticsearch:
+          enabled: true
+          host: "elasticsearch-logging"
+          port: 9200
+          index: "microagents-logs"
+        loki:
+          enabled: false
+          url: ""
+    
+    # Log retention
+    retention:
+      enabled: true
+      days: 30
+      # Compression
+      compression:
+        enabled: true
+        algorithm: "gzip"
+  
+  # Custom metrics collection
+  customMetrics:
+    enabled: true
+    # Business metrics
+    business:
+      - name: "agents_active"
+        type: "gauge"
+        help: "Number of active agents"
+      - name: "incidents_resolved"
+        type: "counter"
+        help: "Total incidents resolved"
+      - name: "cost_savings"
+        type: "gauge"
+        help: "Cost savings in USD"
+    # Performance metrics
+    performance:
+      - name: "agent_execution_time"
+        type: "histogram"
+        help: "Agent execution time distribution"
+        buckets: [0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
+
+# ==============================================================================
+# Security Configuration
+# ==============================================================================
+
+security:
+  enabled: true
+  
+  # Authentication
+  auth:
+    enabled: true
+    provider: "jwt"  # jwt, oauth2, ldap
+    # JWT configuration
+    jwt:
+      secretName: "jwt-secret"
+      algorithm: "RS256"
+      issuer: "microagents.io"
+      audience: "microagents-platform"
+      expiration: "24h"
+      refreshExpiration: "7d"
+    # OAuth2 configuration
+    oauth2:
+      enabled: false
+      providers:
+        google:
+          enabled: false
+          clientId: ""
+        github:
+          enabled: false
+          clientId: ""
+        azure:
+          enabled: false
+  
+  # Authorization (RBAC)
+  rbac:
+    enabled: true
+    # Role definitions
+    roles:
+      - name: "admin"
+        permissions: ["*"]
+      - name: "operator"
+        permissions: ["read", "write", "execute"]
+      - name: "viewer"
+        permissions: ["read"]
+    # Default role for new users
+    defaultRole: "viewer"
+  
+  # Network security
+  network:
+    # Pod security policies (if supported)
+    psp:
+      enabled: true
+      policy: "restricted"
+    # Network policies
+    policies:
+      enabled: true
+      # Default deny all
+      defaultDeny: true
+  
+  # Secret management
+  secrets:
+    # External secret management (Vault/Secrets Manager)
+    external:
+      enabled: false
+      provider: "vault"  # vault, aws-secrets-manager, azure-key-vault
+      vault:
+        address: ""
+        role: "microagents"
+        path: "secret/data/microagents"
+      rotation:
+        enabled: true
+        interval: "90d"
+  
+  # Compliance monitoring
+  compliance:
+    enabled: true
+    standards:
+      pci:
+        enabled: true
+        level: "saq-d"
+      gdpr:
+        enabled: true
+        dpoEmail: "dpo@microagents.io"
+      soc2:
+        enabled: true
+        type: "type-ii"
+      hipaa:
+        enabled: false
+    # Automated compliance checks
+    checks:
+      schedule: "0 1 * * *"  # Daily at 01:00
+      reports:
+        enabled: true
+        retention: "365d"
+  
+  # Vulnerability scanning
+  vulnerability:
+    enabled: true
+    scanner: "trivy"  # trivy, grype, snyk
+    schedule: "0 2 * * *"  # Daily at 02:00
+    severityThreshold: "HIGH"
+    # Container image scanning
+    images:
+      enabled: true
+      # Registry scanning
+      registry:
+        enabled: true
+        url: "registry.microagents.io"
+    # Runtime scanning
+    runtime:
+      enabled: true
+      mode: "continuous"
+
+# ==============================================================================
+# Backup & Disaster Recovery
+# ==============================================================================
+
+backup:
+  enabled: true
+  
+  # Backup schedule
+  schedule:
+    enabled: true
+    cron: "0 3 * * *"  # Daily at 03:00
+    retention: 30
+  
+  # Velero configuration
+  velero:
+    enabled: true
+    # Backup location
+    storage:
+      provider: "aws"  # aws, gcp, azure, minio
+      bucket: "microagents-backups"
+      region: "eu-west-1"
+      # Encryption
+      encryption:
+        enabled: true
+        keyId: ""
+    # Snapshot configuration
+    snapshots:
+      enabled: true
+      # Include volumes
+      includeVolumes: true
+  
+  # Database backup
+  database:
+    enabled: true
+    # Logical backups
+    logical:
+      enabled: true
+      format: "custom"  # custom, plain, tar
+      compression: "gzip"
+    # Physical backups (WAL archiving)
+    physical:
+      enabled: true
+      walArchiving: true
+      archiveTimeout: "60s"
+  
+  # Stateful application backup
+  application:
+    enabled: true
+    # What to backup
+    include:
+      - "deployments"
+      - "statefulsets"
+      - "configmaps"
+      - "secrets"
+      - "services"
+    # Exclude patterns
+    exclude:
+      - "*.tmp"
+      - "*.log"
+  
+  # Disaster recovery
+  disasterRecovery:
+    enabled: true
+    # Recovery objectives
+    objectives:
+      rpo: "1h"  # Recovery Point Objective
+      rto: "30m"  # Recovery Time Objective
+    # Multi-region recovery
+    multiRegion:
+      enabled: false
+      regions:
+        - "eu-west-1"
+        - "us-east-1"
+    # Recovery procedures
+    procedures:
+      automated: true
+      validation: true
+      # Test recovery periodically
+      test:
+        enabled: true
+        schedule: "0 4 * * 0"  # Weekly on Sunday at 04:00
+
+# ==============================================================================
+# Performance Tuning
+# ==============================================================================
+
+performance:
+  enabled: true
+  
+  # JVM tuning (for Java-based services)
+  jvm:
+    enabled: false
+    options: >
+      -Xmx2g
+      -Xms512m
+      -XX:MaxMetaspaceSize=256m
+      -XX:+UseG1GC
+      -XX:MaxGCPauseMillis=200
+      -XX:+ParallelRefProcEnabled
+      -XX:+HeapDumpOnOutOfMemoryError
+      -XX:HeapDumpPath=/tmp/heapdump.hprof
+  
+  # Node.js tuning
+  nodejs:
+    enabled: true
+    options: >
+      --max-old-space-size=1536
+      --max-semi-space-size=256
+      --optimize-for-size
+  
+  # Python tuning
+  python:
+    enabled: true
+    # Garbage collection
+    gc:
+      enabled: true
+      thresholds:
+        - 700
+        - 10
+        - 10
+    # Memory management
+    memory:
+      maxMemory: "2g"
+  
+  # Connection pooling
+  connectionPool:
+    database:
+      min: 5
+      max: 50
+      timeout: "30s"
+      idle: "10m"
+    redis:
+      min: 5
+      max: 100
+      timeout: "5s"
+      idle: "5m"
+  
+  # Caching strategies
+  caching:
+    enabled: true
+    levels:
+      - name: "l1"
+        type: "memory"
+        size: "512mb"
+        ttl: "5m"
+      - name: "l2"
+        type: "redis"
+        ttl: "1h"
+    # Cache warming
+    warmup:
+      enabled: true
+      schedule: "*/15 * * * *"  # Every 15 minutes
+  
+  # Query optimization
+  query:
+    enabled: true
+    # Database query optimization
+    database:
+      maxExecutionTime: "10s"
+      slowQueryThreshold: "1s"
+      # Index optimization
+      indexes:
+        enabled: true
+        analyzeSchedule: "0 4 * * *"  # Daily at 04:00
+    # API response optimization
+    api:
+      compression: true
+      minify: true
+      # Response caching
+      cache:
+        enabled: true
+        ttl: "5m"
+  
+  # Load shedding and rate limiting
+  loadShedding:
+    enabled: true
+    strategies:
+      - type: "rate-limit"
+        requestsPerSecond: 100
+        burst: 50
+      - type: "circuit-breaker"
+        threshold: 0.5  # 50% error rate
+        timeout: "60s"
+      - type: "priority"
+        levels:
+          - name: "critical"
+            priority: 100
+          - name: "high"
+            priority: 75
+          - name: "normal"
+            priority: 50
+          - name: "low"
+            priority: 25
+
+# ==============================================================================
+# Cost Optimization
+# ==============================================================================
+
+cost:
+  enabled: true
+  
+  # Resource optimization
+  resources:
+    enabled: true
+    # Rightsizing recommendations
+    rightsizing:
+      enabled: true
+      interval: "24h"
+      threshold: 20  # 20% utilization threshold
+    # Idle resource detection
+    idle:
+      enabled: true
+      threshold: "24h"  # Consider idle after 24h
+      action: "scale-down"  # scale-down, notify, terminate
+  
+  # Auto-scaling optimization
+  autoscaling:
+    enabled: true
+    # Scale-to-zero for non-critical services
+    scaleToZero:
+      enabled: true
+      services:
+        - "development"
+        - "staging"
+    # Predictive scaling
+    predictive:
+      enabled: true
+      horizon: "24h"  # Predict 24h ahead
+      confidence: 0.8  # 80% confidence threshold
+  
+  # Spot instance optimization (for cloud providers)
+  spot:
+    enabled: false
+    strategy: "balanced"  # balanced, cost-optimized, availability-optimized
+    interruptionBehavior: "terminate"  # terminate, hibernate
+    # Fallback to on-demand
+    fallback:
+      enabled: true
+      threshold: 30  # 30% price difference
+  
+  # Storage optimization
+  storage:
+    enabled: true
+    # Tiered storage
+    tiers:
+      - name: "hot"
+        access: "frequent"
+        retention: "7d"
+      - name: "warm"
+        access: "infrequent"
+        retention: "30d"
+      - name: "cold"
+        access: "archive"
+        retention: "365d"
+    # Compression
+    compression:
+      enabled: true
+      algorithm: "zstd"
+      level: 3
+  
+  # Network cost optimization
+  network:
+    enabled: true
+    # Data transfer optimization
+    transfer:
+      enabled: true
+      # Use private endpoints
+      privateEndpoints: true
+      # Compression
+      compression:
+        enabled: true
+        minSize: "1kb"
+    # CDN optimization
+    cdn:
+      enabled: false
+      provider: "cloudfront"  # cloudfront, cloudflare, akamai
+  
+  # Monitoring and reporting
+  monitoring:
+    enabled: true
+    # Cost allocation tags
+    tags:
+      enabled: true
+      default:
+        - "environment"
+        - "team"
+        - "project"
+        - "cost-center"
+    # Budget alerts
+    budgets:
+      enabled: true
+      # Monthly budget
+      monthly: 5000  # USD
+      # Alert thresholds
+      thresholds:
+        - percentage: 50
+          severity: "info"
+        - percentage: 80
+          severity: "warning"
+        - percentage: 100
+          severity: "critical"
+    # Reports
+    reports:
+      enabled: true
+      schedule: "0 2 * * *"  # Daily at 02:00
+      retention: "365d"
+
+# ==============================================================================
+# Examples for Different Environments
+# ==============================================================================
+
+## Development Environment Example:
+# environment: "development"
+# api:
+#   replicaCount: 1
+#   autoscaling:
+#     enabled: false
+# agents:
+#   count: 100
+# database:
+#   postgresql:
+#     replication:
+#       enabled: false
+# security:
+#   compliance:
+#     enabled: false
+# backup:
+#   enabled: false
+# cost:
+#   enabled: false
+
+## Staging Environment Example:
+# environment: "staging"
+# api:
+#   replicaCount: 2
+#   autoscaling:
+#     enabled: true
+#     minReplicas: 2
+#     maxReplicas: 5
+# agents:
+#   count: 500
+# database:
+#   postgresql:
+#     replication:
+#       enabled: true
+#       readReplicas: 1
+# security:
+#   compliance:
+#     enabled: true
+# backup:
+#   enabled: true
+#   schedule:
+#     cron: "0 2 * * *"
+#     retention: 7
+# cost:
+#   enabled: true
+#   monitoring:
+#     enabled: true
+
+## Production Environment Example (this file):
+# environment: "production"
+# api:
+#   replicaCount: 3
+#   minReplicas: 3
+#   maxReplicas: 20
+# agents:
+#   count: 1400
+# database:
+#   postgresql:
+#     replication:
+#       enabled: true
+#       readReplicas: 2
+# security:
+#   enabled: true
+#   compliance:
+#     enabled: true
+# backup:
+#   enabled: true
+#   schedule:
+#     cron: "0 3 * * *"
+#     retention: 30
+#   disasterRecovery:
+#     enabled: true
+# cost:
+#   enabled: true
+#   resources:
+#     rightsizing:
+#       enabled: true
+
+# ==============================================================================
+# Validation Rules (for schema validation)
+# ==============================================================================
+
+## Validation annotations (for tools like helm schema):
+# x-helm-validations:
+#   - rule: "api.replicaCount >= 1"
+#     message: "API replica count must be at least 1"
+#   - rule: "agents.count >= 100 && agents.count <= 2000"
+#     message: "Agent count must be between 100 and 2000"
+#   - rule: "database.postgresql.performance.maxConnections >= 100"
+#     message: "Max database connections must be at least 100"
+#   - rule: "security.auth.jwt.expiration matches '^[0-9]+[smhd]$'"
+#     message: "JWT expiration must be in format like '24h', '30m', '7d'"
+#   - rule: "backup.schedule.retention >= 1 && backup.schedule.retention <= 365"
+#     message: "Backup retention must be between 1 and 365 days"
+#   - rule: "cost.monitoring.budgets.monthly >= 100"
+#     message: "Monthly budget must be at least $100"
+
+# ==============================================================================
+# Notes
+# ==============================================================================
+
+## Notes for deployment:
+# 1. Before deploying to production:
+#    - Review and update all secrets
+#    - Configure external services (DNS, SSL certificates)
+#    - Set up monitoring and alerting
+#    - Test backup and recovery procedures
+#    - Review security settings and compliance requirements
+#
+# 2. For high availability:
+#    - Enable database replication
+#    - Configure Redis sentinel
+#    - Use multiple API replicas
+#    - Set up pod anti-affinity rules
+#    - Configure pod disruption budgets
+#
+# 3. For cost optimization:
+#    - Enable resource rightsizing
+#    - Configure auto-scaling appropriately
+#    - Set up cost monitoring and budgets
+#    - Use spot instances where appropriate
+#    - Implement storage tiering
+#
+# 4. For security:
+#    - Enable network policies
+#    - Configure secret management
+#    - Enable vulnerability scanning
+#    - Set up compliance monitoring
+#    - Configure audit logging
+#
+# 5. For performance:
+#    - Tune resource requests/limits
+#    - Configure connection pooling
+#    - Enable caching strategies
+#    - Set up query optimization
+#    - Configure load shedding

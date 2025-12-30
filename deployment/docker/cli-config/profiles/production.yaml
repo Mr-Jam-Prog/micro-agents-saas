@@ -1,0 +1,31 @@
+# Profil de configuration pour la production
+
+extends: default
+
+# Surcharges pour la production
+log:
+  level: WARNING
+  format: json
+  file: /var/log/microagents/microagents.log
+  rotation:
+    size: 100MB
+    backup_count: 10
+
+performance:
+  parallel_agents: 20
+  cache_enabled: true
+  connection_pool_size: 200
+
+security:
+  mask_sensitive_data: true
+  audit_logging: true
+  certificate_verification: true
+
+monitoring:
+  enabled: true
+  metrics_port: 9090
+  health_check_interval: 10  # Plus fréquent en production
+
+update:
+  auto_apply: false  # Toujours vérifier manuellement en production
+  rollback_on_failure: true

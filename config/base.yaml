@@ -1,0 +1,732 @@
+# ==============================================================================
+# Configuration de Base - MicroAgents Platform
+# ==============================================================================
+# 
+# HIÉRARCHIE DE PRIORITÉ (du plus fort au plus faible):
+# 1. Variables d'environnement (ENV_OVERRIDE_*)
+# 2. Fichiers de surcharge (environment-specific)
+# 3. Ce fichier (config/base.yaml)
+# 
+# Variables d'environnement: MA_PREFIX_{SECTION}_{KEY} (ex: MA_LOGGING_LEVEL)
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. CONFIGURATION DU LOGGING STRUCTURÉ
+# ------------------------------------------------------------------------------
+logging:
+  # Format de sortie: json pour production, console pour développement
+  format: json  # Options: json, console, logstash
+  level: INFO   # Niveau global: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  
+  # Configuration JSON structuré
+  json_config:
+    indent: null              # null pour production (compact), 2 pour développement
+    ensure_ascii: false       # Support Unicode
+    separators: (",", ":")    # Format compact
+    
+  # Niveaux par module (surcharge du niveau global)
+  module_levels:
+    microagents.core: INFO
+    microagents.api: INFO
+    microagents.agents: DEBUG
+    microagents.monitoring: INFO
+    microagents.billing: WARNING
+    microagents.security: ERROR
+    microagents.database: WARNING
+    microagents.integrations: INFO
+    
+  # Handlers
+  handlers:
+    console:
+      enabled: true
+      stream: stdout
+      
+    file:
+      enabled: true
+      path: /var/log/microagents/app.log
+      max_size_mb: 100          # Rotation à 100MB
+      backup_count: 10          # Garder 10 fichiers d'archive
+      
+    syslog:
+      enabled: false
+      address: /dev/log         # Unix socket
+      facility: local0
+      
+  # Champs structurés pour JSON logging
+  structured_fields:
+    timestamp: true
+    level: true
+    module: true
+    function: true
+    line: true
+    process_id: true
+    thread_id: true
+    correlation_id: true       # Pour le tracing de requêtes
+    tenant_id: true            # Pour le multi-tenant
+    
+  # Filtrage des données sensibles
+  sensitive_data_masking:
+    enabled: true
+    patterns:
+      - "password=.*"
+      - "api_key=.*"
+      - "token=.*"
+      - "secret=.*"
+    replacement: "[REDACTED]"
+
+# ------------------------------------------------------------------------------
+# 2. SEUILS PAR DÉFAUT POUR TOUS LES AGENTS
+# ------------------------------------------------------------------------------
+agent_thresholds:
+  # Seuils de confiance pour les décisions automatisées
+  confidence:
+    critical_action: 0.95      # ≥95% pour actions critiques (ex: shutdown)
+    high_confidence: 0.85      # 85-95% pour actions importantes
+    medium_confidence: 0.70    # 70-85% pour recommendations
+    low_confidence: 0.50       # 50-70% pour alertes seulement
+    ignore_below: 0.50         # Ignorer les prédictions <50%
+    
+  # Niveaux de sévérité standardisés
+  severity:
+    critical:                  # Impact immédiat et grave
+      business_impact: 0.9     # 90%+ d'impact métier
+      auto_remediate: true     # Auto-réparation activée
+      escalation_timeout: 300  # 5 minutes avant escalade
+      
+    high:                      # Impact important mais non critique
+      business_impact: 0.7     # 70-90% d'impact métier
+      auto_remediate: true
+      escalation_timeout: 1800 # 30 minutes
+      
+    medium:                    # Impact modéré
+      business_impact: 0.4     # 40-70% d'impact métier
+      auto_remediate: false    # Requiert validation
+      escalation_timeout: 3600 # 1 heure
+      
+    low:                       # Impact minimal
+      business_impact: 0.1     # 10-40% d'impact métier
+      auto_remediate: false
+      escalation_timeout: 7200 # 2 heures
+      
+    info:                      # Information seulement
+      business_impact: 0.0     # 0-10% d'impact métier
+      auto_remediate: false
+      escalation_timeout: 0    # Pas d'escalade
+      
+  # Seuils d'exécution
+  execution:
+    timeout_default: 300       # 5 minutes par défaut (secondes)
+    timeout_critical: 30       # 30 secondes pour actions critiques
+    timeout_background: 3600   # 1 heure pour tâches de fond
+    
+  # Seuils de ressources
+  resources:
+    max_memory_mb: 512         # 512MB par agent
+    max_cpu_percent: 50        # 50% CPU par agent
+    max_disk_mb: 1024          # 1GB de stockage temporaire
+
+# ------------------------------------------------------------------------------
+# 3. FORMULES DE CALCUL ROI PAR CATÉGORIE
+# ------------------------------------------------------------------------------
+roi_formulas:
+  # Toutes les valeurs monétaires en USD
+  currency: USD
+  
+  # Éviction de coûts (Cost Avoidance)
+  cost_avoidance:
+    # Éviction de coûts infrastructure
+    infrastructure:
+      formula: |
+        baseline_cost * (1 - reduction_percentage) * scaling_factor
+      variables:
+        baseline_cost: "Coût mensuel avant optimisation (USD)"
+        reduction_percentage: "Pourcentage de réduction (0.0-1.0)"
+        scaling_factor: "Facteur de mise à l'échelle (1.0 par défaut)"
+        
+    # Éviction de coûts opérationnels
+    operational:
+      formula: |
+        manual_hours_saved * hourly_rate * automation_efficiency
+      variables:
+        manual_hours_saved: "Heures manuelles économisées par mois"
+        hourly_rate: "Taux horaire moyen (USD)"
+        automation_efficiency: "Efficacité d'automatisation (0.8-1.2)"
+        
+  # Gains de productivité
+  productivity_gain:
+    # Productivité développeurs
+    developer:
+      formula: |
+        (incident_resolution_time_before - incident_resolution_time_after) * incidents_per_month * developer_hourly_rate
+      variables:
+        incident_resolution_time_before: "Temps moyen de résolution avant (heures)"
+        incident_resolution_time_after: "Temps moyen de résolution après (heures)"
+        incidents_per_month: "Nombre d'incidents par mois"
+        developer_hourly_rate: "Taux horaire développeur (USD)"
+        
+    # Productivité opérations
+    operations:
+      formula: |
+        alerts_handled_automatically * time_per_alert * ops_hourly_rate
+      variables:
+        alerts_handled_automatically: "Alertes traitées automatiquement par mois"
+        time_per_alert: "Temps moyen par alerte (heures)"
+        ops_hourly_rate: "Taux horaire opérations (USD)"
+        
+  # Évènements évités
+  incidents_avoided:
+    # Coût d'incident type
+    incident_cost_model:
+      formula: |
+        (downtime_cost + recovery_cost + reputation_cost) * probability_reduction
+      variables:
+        downtime_cost: "Coût par heure d'indisponibilité (USD)"
+        recovery_cost: "Coût de récupération (USD)"
+        reputation_cost: "Coût réputationnel estimé (USD)"
+        probability_reduction: "Réduction de probabilité (0.0-1.0)"
+        
+  # Optimisations de licence
+  license_optimization:
+    formula: |
+      (licenses_before - licenses_after) * license_monthly_cost * commitment_discount
+    variables:
+      licenses_before: "Nombre de licences avant"
+      licenses_after: "Nombre de licences après optimisation"
+      license_monthly_cost: "Coût mensuel par licence (USD)"
+      commitment_discount: "Remise engagement (0.7-1.0)"
+      
+  # Facteurs de pondération ROI
+  weighting_factors:
+    cost_savings: 1.0          # Facteur de pondération économies de coûts
+    productivity: 1.2          # Productivité pondérée plus fortement
+    risk_reduction: 0.8        # Réduction de risque pondérée
+    innovation: 0.5            # Innovation/capacité nouvelle
+
+# ------------------------------------------------------------------------------
+# 4. BASELINES DE PERFORMANCE
+# ------------------------------------------------------------------------------
+performance_baselines:
+  # Toutes les durées en secondes sauf indication contraire
+  
+  # Agents individuels
+  agent_execution:
+    timeout_warning: 30        # Avertissement après 30 secondes
+    timeout_critical: 60       # Critique après 60 secondes
+    memory_limit_mb: 256       # Limite mémoire par agent
+    cpu_limit_percent: 25      # Limite CPU par agent
+    
+  # Pipelines d'agents
+  pipelines:
+    sequential:
+      max_agents: 10           # Maximum d'agents en séquence
+      timeout_per_agent: 10    # 10 secondes par agent
+      
+    parallel:
+      max_concurrent: 50       # 50 agents maximum en parallèle
+      timeout_total: 300       # 5 minutes total
+    
+  # API Endpoints
+  api_endpoints:
+    health_check:
+      p95_latency: 1.0         # 1 seconde P95
+      p99_latency: 2.0         # 2 secondes P99
+      
+    agent_execution:
+      p95_latency: 5.0         # 5 secondes P95
+      p99_latency: 10.0        # 10 secondes P99
+      
+    batch_operations:
+      p95_latency: 30.0        # 30 secondes P95
+      p99_latency: 60.0        # 60 secondes P99
+      
+  # Base de données
+  database:
+    query_simple:
+      p95_latency: 0.1         # 100ms P95
+      p99_latency: 0.5         # 500ms P99
+      
+    query_complex:
+      p95_latency: 1.0         # 1 seconde P95
+      p99_latency: 5.0         # 5 secondes P99
+      
+    connection_pool:
+      max_size: 100
+      timeout: 30              # 30 secondes
+    
+  # Surveillance continue
+  monitoring:
+    metrics_collection_interval: 60     # 60 secondes
+    log_aggregation_interval: 300       # 5 minutes
+    alert_evaluation_interval: 30       # 30 secondes
+
+# ------------------------------------------------------------------------------
+# 5. RÈGLES MÉTIER
+# ------------------------------------------------------------------------------
+business_rules:
+  # ROI minimum pour approbation automatique
+  roi_auto_approval:
+    infrastructure_optimization:
+      min_roi_percentage: 100          # 100% ROI minimum
+      payback_months: 6                # 6 mois maximum
+      confidence_threshold: 0.85       # 85% confiance minimum
+      
+    security_improvement:
+      min_roi_percentage: 50           # 50% ROI minimum (sécurité prioritaire)
+      payback_months: 12               # 12 mois maximum
+      confidence_threshold: 0.90       # 90% confiance minimum
+      
+    productivity_tool:
+      min_roi_percentage: 150          # 150% ROI minimum
+      payback_months: 3                # 3 mois maximum
+      confidence_threshold: 0.80       # 80% confiance minimum
+      
+  # Déclencheurs d'escalade
+  escalation_triggers:
+    # Basé sur le temps
+    time_based:
+      critical: 300                    # 5 minutes sans résolution
+      high: 1800                       # 30 minutes
+      medium: 3600                     # 1 heure
+      low: 14400                       # 4 heures
+      
+    # Basé sur l'impact
+    impact_based:
+      revenue_loss_per_hour: 1000      # 1000 USD/heure → escalade critique
+      customer_affected_percentage: 10 # 10% des clients affectés
+      service_degradation: 50          # 50% de dégradation
+      
+    # Basé sur la répétition
+    repetition_based:
+      same_incident_count: 3           # Même incident 3 fois → escalade
+      same_agent_failure: 5            # Même agent échoue 5 fois
+      
+  # Règles d'approbation de dépenses
+  spending_approval:
+    auto_approval_limit: 1000          # 1000 USD approbation automatique
+    manager_approval_limit: 10000      # 10,000 USD besoin manager
+    director_approval_limit: 50000     # 50,000 USD besoin directeur
+    vp_approval_limit: 100000          # 100,000 USD besoin VP
+    
+  # Politiques de remboursement
+  refund_policies:
+    satisfaction_guarantee_days: 30    # Garantie satisfaction 30 jours
+    proration_enabled: true            # Proration activée
+    cancellation_refund_percentage: 90 # 90% remboursement annulation anticipée
+
+# ------------------------------------------------------------------------------
+# 6. FEATURE FLAGS PAR DÉFAUT
+# ------------------------------------------------------------------------------
+feature_flags:
+  # Expérimentation et déploiement progressif
+  experimental:
+    ai_agent_training: false           # Formation automatique des agents
+    predictive_scaling: false          # Mise à l'échelle prédictive
+    advanced_anomaly_detection: false  # Détection d'anomalies avancée
+    natural_language_queries: false    # Requêtes en langage naturel
+    
+  # Nouvelles fonctionnalités
+  features:
+    multi_cloud_orchestration: true    # Orchestration multi-cloud
+    cost_anomaly_detection: true       # Détection d'anomalies de coût
+    security_compliance_scanning: true # Scan de conformité sécurité
+    business_value_dashboard: true     # Dashboard valeur métier
+    
+  # Intégrations
+  integrations:
+    aws_cost_explorer: true            # Intégration AWS Cost Explorer
+    azure_cost_management: true        # Intégration Azure Cost Management
+    gcp_billing_export: true           # Intégration GCP Billing
+    kubernetes_monitoring: true        # Monitoring Kubernetes
+    slack_notifications: true          # Notifications Slack
+    pagerduty_integration: true        # Intégration PagerDuty
+    
+  # Performance et optimisation
+  performance:
+    query_caching: true                # Cache des requêtes
+    connection_pooling: true           # Pool de connexions
+    background_processing: true        # Traitement en arrière-plan
+    compression: true                  # Compression des données
+    
+  # Sécurité
+  security:
+    rate_limiting: true                # Limitation de débit
+    brute_force_protection: true       # Protection brute force
+    sql_injection_protection: true     # Protection injection SQL
+    xss_protection: true               # Protection XSS
+
+# ------------------------------------------------------------------------------
+# 7. CONFIGURATION SAAS PAR TIERS
+# ------------------------------------------------------------------------------
+saas_tiers:
+  # Tier Starter (gratuit/essai)
+  starter:
+    max_agents: 50                     # 50 agents maximum
+    max_users: 3                       # 3 utilisateurs
+    data_retention_days: 30            # 30 jours de rétention
+    support_level: community           # Support communautaire
+    features:
+      basic_monitoring: true
+      cost_alerting: true
+      basic_reporting: true
+      api_access: true
+      community_support: true
+    limitations:
+      no_advanced_ai: true
+      no_custom_agents: true
+      rate_limited: true
+      
+  # Tier Professional (499 USD/mois)
+  professional:
+    max_agents: 500                    # 500 agents
+    max_users: 10                      # 10 utilisateurs
+    data_retention_days: 90            # 90 jours de rétention
+    support_level: business_hours      # Support heures ouvrables
+    sla_percentage: 99.5               # 99.5% SLA
+    features:
+      all_starter_features: true
+      advanced_monitoring: true
+      cost_optimization: true
+      security_compliance: true
+      custom_agents: true
+      api_priority_access: true
+      email_support: true
+    addons:
+      additional_agents: 50            # 50 USD pour 50 agents supplémentaires
+      extended_retention: 100          # 100 USD/mois pour 1 an de rétention
+      
+  # Tier Enterprise (sur devis)
+  enterprise:
+    max_agents: 5000                   # 5000 agents
+    max_users: 100                     # 100 utilisateurs
+    data_retention_days: 365           # 1 an de rétention
+    support_level: 24x7                # Support 24/7
+    sla_percentage: 99.99              # 99.99% SLA
+    features:
+      all_professional_features: true
+      dedicated_instance: true
+      custom_integrations: true
+      advanced_ai_agents: true
+      predictive_analytics: true
+      white_labeling: true
+      sso_integration: true
+      custom_sla: true
+      dedicated_support: true
+      on_premise_option: true
+    customizations:
+      custom_agent_development: true
+      custom_reporting: true
+      custom_billing: true
+      custom_security: true
+
+# ------------------------------------------------------------------------------
+# 8. CONFIGURATION MULTI-TENANT
+# ------------------------------------------------------------------------------
+multi_tenant:
+  # Stratégie d'isolation
+  isolation_strategy: database_per_tenant  # Options: database_per_tenant, schema_per_tenant, row_level
+  default_isolation_level: high            # Niveaux: high, medium, low
+  
+  # Isolation haute (base de données par tenant)
+  high_isolation:
+    separate_database: true
+    separate_connection_pool: true
+    dedicated_resources: true
+    data_encryption: tenant_key            # Chiffrement avec clé par tenant
+    
+  # Isolation moyenne (schéma par tenant)
+  medium_isolation:
+    separate_schema: true
+    shared_database: true
+    shared_connection_pool: false
+    data_encryption: shared_key            # Chiffrement avec clé partagée
+    
+  # Isolation basse (niveau ligne)
+  low_isolation:
+    row_level_security: true
+    shared_schema: true
+    shared_connection_pool: true
+    data_encryption: column_level          # Chiffrement au niveau colonne
+    
+  # Quotas par défaut par tenant
+  default_quotas:
+    max_agents: 100
+    max_users: 10
+    storage_gb: 100
+    api_requests_per_minute: 1000
+    concurrent_connections: 100
+    background_jobs: 50
+    
+  # Cross-tenant access (pour support/admin)
+  cross_tenant_access:
+    enabled: false                         # Désactivé par défaut
+    allowed_roles: ["super_admin", "support_engineer"]
+    audit_logging: true                    # Journalisation obligatoire
+    require_mfa: true                      # MFA requis
+    session_timeout: 900                   # 15 minutes timeout
+
+# ------------------------------------------------------------------------------
+# 9. POLITIQUES DE CACHE
+# ------------------------------------------------------------------------------
+cache_policies:
+  # TTL par défaut (secondes)
+  default_ttl:
+    configuration: 300                     # 5 minutes
+    agent_registry: 60                     # 1 minute
+    user_sessions: 3600                    # 1 heure
+    api_results: 30                        # 30 secondes
+    business_metrics: 900                  # 15 minutes
+    cost_data: 1800                        # 30 minutes
+    
+  # Stratégies d'invalidation
+  invalidation_strategies:
+    # Invalidation par temps
+    time_based:
+      absolute_ttl: true                   # TTL absolu
+      sliding_expiration: true             # Expiration glissante
+      
+    # Invalidation par événement
+    event_based:
+      on_data_change: true                 # Sur changement de données
+      on_config_update: true               # Sur mise à jour config
+      on_user_action: true                 # Sur action utilisateur
+      
+    # Invalidation conditionnelle
+    conditional:
+      memory_pressure: true                # Sous pression mémoire
+      low_hit_rate: true                   # Taux de succès faible
+      
+  # Stratégies de mise à jour
+  update_strategies:
+    write_through: true                    # Écriture synchrone
+    write_behind: false                    # Écriture asynchrone
+    refresh_ahead: true                    # Rafraîchissement anticipé
+    
+  # Gestion de la mémoire
+  memory_management:
+    max_size_mb: 1024                      # 1GB maximum
+    eviction_policy: lru                   # LRU (Least Recently Used)
+    cleanup_interval: 60                   # Nettoyage toutes les 60 secondes
+    
+  # Cache distribué (si activé)
+  distributed:
+    enabled: false                         # Désactivé par défaut
+    provider: redis                        # Redis par défaut
+    cluster_mode: false                    # Mode cluster
+    replication_factor: 1                  # Facteur de réplication
+
+# ------------------------------------------------------------------------------
+# 10. CONFIGURATION D'ALERTE PAR DÉFAUT
+# ------------------------------------------------------------------------------
+alerting_defaults:
+  # Canaux de notification
+  channels:
+    email:
+      enabled: true
+      priority_levels: [critical, high]   # Niveaux pour email
+      format: html                        # Format HTML
+      batch_interval: 300                 # Regroupement 5 minutes
+      
+    slack:
+      enabled: true
+      priority_levels: [critical, high, medium]
+      channels:
+        incidents: "#microagents-incidents"
+        cost_alerts: "#microagents-cost"
+        security: "#microagents-security"
+        
+    webhook:
+      enabled: true
+      priority_levels: [critical]
+      endpoints:
+        pagerduty: "https://events.pagerduty.com/v2/enqueue"
+        opsgenie: "https://api.opsgenie.com/v2/alerts"
+        
+    sms:
+      enabled: false                      # Désactivé par défaut (coût)
+      priority_levels: [critical]
+      provider: twilio                    # Provider SMS
+      
+  # Fréquences de notification
+  frequencies:
+    initial_alert: immediate             # Alerte immédiate
+    reminder_interval: 900               # Rappel toutes les 15 minutes
+    escalation_interval: 1800            # Escalade toutes les 30 minutes
+    max_alerts_per_hour: 10              # Maximum 10 alertes/heure
+    quiet_hours:                         # Heures calmes (pas d'alertes)
+      start: "22:00"                     # 22:00
+      end: "06:00"                       # 06:00
+      timezone: "UTC"
+      
+  # Chemins d'escalade
+  escalation_paths:
+    level_1:                             # Niveau 1 - On-call
+      roles: ["on_call_engineer"]
+      timeout_seconds: 300               # 5 minutes
+      channels: [slack, sms]
+      
+    level_2:                             # Niveau 2 - Manager
+      roles: ["engineering_manager", "operations_manager"]
+      timeout_seconds: 1800              # 30 minutes
+      channels: [slack, email, phone]
+      
+    level_3:                             # Niveau 3 - Director
+      roles: ["director_of_engineering", "director_of_operations"]
+      timeout_seconds: 3600              # 1 heure
+      channels: [phone, email]
+      
+    level_4:                             # Niveau 4 - Executive
+      roles: ["cto", "vp_engineering"]
+      timeout_seconds: 7200              # 2 heures
+      channels: [phone]
+      
+  # Dédoublonnage et regroupement
+  deduplication:
+    enabled: true
+    window_minutes: 60                    # Fenêtre de 60 minutes
+    grouping_key_fields:                  # Champs pour regroupement
+      - alert_type
+      - resource_id
+      - tenant_id
+      
+  # Templates d'alerte
+  templates:
+    critical:
+      subject: "[CRITICAL] {alert_name} - {resource}"
+      color: "#FF0000"                    # Rouge
+      emoji: "🚨"
+      
+    high:
+      subject: "[HIGH] {alert_name} - {resource}"
+      color: "#FF6B00"                    # Orange
+      emoji: "⚠️"
+      
+    medium:
+      subject: "[MEDIUM] {alert_name} - {resource}"
+      color: "#FFD700"                    # Jaune
+      emoji: "🔔"
+      
+    low:
+      subject: "[LOW] {alert_name} - {resource}"
+      color: "#1E90FF"                    # Bleu
+      emoji: "ℹ️"
+
+# ------------------------------------------------------------------------------
+# DÉTECTION AUTOMATIQUE D'ENVIRONNEMENT
+# ------------------------------------------------------------------------------
+environment:
+  # Détection automatique basée sur:
+  # 1. Variable d'environnement MA_ENV
+  # 2. Nom d'hôte
+  # 3. Adresse IP
+  # 4. Fichier de configuration présent
+  
+  auto_detection:
+    enabled: true
+    fallback: development                # Fallback si non détecté
+    
+  # Caractéristiques par environnement
+  profiles:
+    development:
+      debug: true
+      log_level: DEBUG
+      feature_flags_all: true            # Tous les flags activés
+      cache_ttl_multiplier: 0.1          # 10% du TTL production
+      
+    staging:
+      debug: false
+      log_level: INFO
+      feature_flags: selective           # Flags sélectifs
+      cache_ttl_multiplier: 0.5          # 50% du TTL production
+      data_retention_days: 7             # 7 jours seulement
+      
+    production:
+      debug: false
+      log_level: WARNING
+      feature_flags: stable_only         # Seulement flags stables
+      cache_ttl_multiplier: 1.0          # TTL complet
+      data_retention_days: 90            # 90 jours
+      
+    canary:
+      debug: false
+      log_level: INFO
+      feature_flags: canary              # Flags canary
+      cache_ttl_multiplier: 0.8          # 80% du TTL production
+      traffic_percentage: 5              # 5% du traffic
+
+# ------------------------------------------------------------------------------
+# VALIDATION DU SCHÉMA
+# ------------------------------------------------------------------------------
+validation:
+  # Schéma de validation pour ce fichier de configuration
+  schema_version: "1.0.0"
+  
+  # Validation des types
+  type_validation:
+    enabled: true
+    strict: true                          # Rejeter les types incorrects
+    
+  # Validation des valeurs
+  value_validation:
+    ranges:
+      enabled: true
+      allow_undefined: false              # Rejeter les valeurs non définies
+      
+  # Validation des dépendances
+  dependency_validation:
+    enabled: true
+    circular_check: true                  # Vérifier les dépendances circulaires
+    
+  # Validation des unités
+  unit_validation:
+    enabled: true
+    accepted_units:
+      time: ["seconds", "minutes", "hours", "days"]
+      memory: ["bytes", "kb", "mb", "gb", "tb"]
+      currency: ["USD", "EUR", "GBP", "JPY"]
+      percentage: ["percent", "ratio"]
+      
+  # Correction automatique
+  auto_correction:
+    enabled: false                        # Désactivé en production
+    corrections:
+      convert_units: true                 # Convertir les unités
+      clamp_values: true                  # Limiter les valeurs aux plages
+      set_defaults: true                  # Définir les valeurs par défaut
+
+# ------------------------------------------------------------------------------
+# DOCUMENTATION DES OVERRIDES
+# ------------------------------------------------------------------------------
+override_hierarchy:
+  # Niveau 1: Variables d'environnement (priorité maximale)
+  # Format: MA_{SECTION}_{KEY} (ex: MA_LOGGING_LEVEL=DEBUG)
+  environment_variables:
+    prefix: "MA_"
+    nested_separator: "__"                # Pour les sections imbriquées
+    array_index_format: "[n]"             # Pour les tableaux: [0], [1]
+    
+  # Niveau 2: Fichiers spécifiques à l'environnement
+  # Exemple: config/production.yaml surcharge ce fichier
+  environment_files:
+    pattern: "config/{env}.yaml"
+    merge_strategy: deep_merge           # Fusion récursive
+    
+  # Niveau 3: Fichiers spécifiques au tenant
+  tenant_files:
+    pattern: "config/tenants/{tenant_id}.yaml"
+    merge_strategy: selective_merge      # Fusion sélective
+    
+  # Niveau 4: Ce fichier (config/base.yaml)
+  base_file:
+    required: true
+    validation_strict: true
+    
+  # Ordre d'application (du plus fort au plus faible):
+  application_order:
+    - environment_variables
+    - tenant_files
+    - environment_files
+    - base_file
+
+# ==============================================================================
+# FIN DE LA CONFIGURATION DE BASE
+# ==============================================================================
