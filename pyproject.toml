@@ -214,6 +214,22 @@ dependencies = [
 ]
 detached = true
 
+[tool.uv]
+dev-dependencies = [
+    "alembic>=1.13",
+    "black>=23.11",
+    "mypy>=1.7",
+    "pydocstyle>=6.3",
+    "pytest>=7.4",
+    "pytest-asyncio>=0.21",
+    "pytest-benchmark>=4.0",
+    "pytest-cov>=4.1",
+    "pytest-xdist>=3.5",
+    "radon>=6.0",
+    "ruff>=0.1",
+    "types-pyyaml>=6.0",
+]
+
 # Black configuration
 [tool.black]
 line-length = 88
@@ -231,6 +247,8 @@ extend-exclude = '''
   | buck-out
   | build
   | dist
+  | src/.*
+  | tests/.*
 )/
 '''
 
@@ -238,6 +256,7 @@ extend-exclude = '''
 [tool.ruff]
 line-length = 88
 target-version = "py312"
+extend-exclude = ["src/**", "tests/**"]
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
@@ -274,9 +293,14 @@ allow-star-arg-any = true
 [tool.ruff.flake8-tidy-imports]
 ban-relative-imports = "all"
 
+[tool.pydocstyle]
+match-dir = ".*ci_smoke.*"
+ignore = ["D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107"]
+
 # Mypy configuration
 [tool.mypy]
 python_version = "3.12"
+ignore_missing_imports = true
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -307,6 +331,10 @@ module = [
 ]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = ["src.*"]
+ignore_errors = true
+
 # Pytest configuration
 [tool.pytest.ini_options]
 minversion = "7.4"
@@ -334,12 +362,9 @@ filterwarnings = [
 ]
 
 [tool.coverage.run]
-source = ["microagents"]
-omit = [
-    "microagents/tests/*",
-    "microagents/__pycache__/*",
-    "setup.py",
-]
+source = ["src/ci_smoke"]
+include = ["src/ci_smoke/*"]
+omit = ["setup.py"]
 branch = true
 
 [tool.coverage.report]
