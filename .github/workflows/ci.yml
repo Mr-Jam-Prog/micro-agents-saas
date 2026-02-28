@@ -647,6 +647,8 @@ jobs:
     timeout-minutes: 5
     needs: [test, security, docker-build, e2e-tests, load-test]
     if: always()
+    permissions:
+      pull-requests: write
 
     steps:
       - name: Determine status
