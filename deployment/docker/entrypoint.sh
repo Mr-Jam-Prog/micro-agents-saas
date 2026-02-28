@@ -159,8 +159,8 @@ preload_cache() {
     if [ "${PRELOAD_CACHE:-false}" = "true" ]; then
         echo "Preloading cache..."
         python -c "
-from src.core.base.registry import AgentRegistry
-from src.registry.cache.redis_handler import RedisHandler
+from microagents.core.base.registry import AgentRegistry
+from microagents.registry.cache.redis_handler import RedisHandler
 import asyncio
 
 async def preload():
@@ -203,7 +203,7 @@ start_application() {
             echo "Starting API server..."
             # Démarrer l'application avec les paramètres optimisés
             exec uvicorn \
-                "src.api.main:app" \
+                "microagents.api.main:app" \
                 --host "${UVICORN_HOST:-0.0.0.0}" \
                 --port "${UVICORN_PORT:-8000}" \
                 --workers "${UVICORN_WORKERS:-4}" \
@@ -234,7 +234,7 @@ start_application() {
             else
                 echo "Starting API server in development mode..."
                 exec uvicorn \
-                    "src.api.main:app" \
+                    "microagents.api.main:app" \
                     --host "${UVICORN_HOST:-0.0.0.0}" \
                     --port "${UVICORN_PORT:-8000}" \
                     --reload \
