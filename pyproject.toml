@@ -1,36 +1,27 @@
 [build-system]
-requires = [
-    "hatchling>=1.18",
-    "hatch-vcs>=0.3",
-    "hatch-fancy-pypi-readme"
-]
+requires = ["hatchling>=1.18"]
 build-backend = "hatchling.build"
 
 [project]
 name = "microagents-platform"
+version = "1.0.0"
 description = "Platforme DevOps intelligente basée sur 1400 micro-agents"
 readme = "README.md"
 license = {text = "Apache-2.0"}
 authors = [
     {name = "DevOps Intelligence Inc.", email = "contact@microagents.io"},
 ]
-maintainers = [
-    {name = "Engineering Team", email = "engineering@microagents.io"},
-]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Intended Audience :: System Administrators",
-    "Topic :: Software Development :: DevOps",
     "Topic :: System :: Monitoring",
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
     "Operating System :: OS Independent",
     "Typing :: Typed",
     "Environment :: Console",
-    "Framework :: Hatch",
 ]
 keywords = ["devops", "microservices", "monitoring", "automation", "cloud", "ai"]
 dependencies = [
@@ -44,7 +35,6 @@ dependencies = [
     "uvloop>=0.19; sys_platform != 'win32'",
     "orjson>=3.9",
     "pyyaml>=6.0",
-    "tomli>=2.0; python_version < '3.11'",
     "python-dateutil>=2.8",
     "cryptography>=42.0",
     "aioredis>=2.0",
@@ -55,346 +45,41 @@ dependencies = [
     "backoff>=2.2",
 ]
 requires-python = ">=3.12"
-dynamic = ["version"]
 
 [project.urls]
 Homepage = "https://microagents.io"
-Documentation = "https://docs.microagents.io"
 Repository = "https://github.com/microagents/devops-platform"
-Changelog = "https://github.com/microagents/devops-platform/releases"
-Issues = "https://github.com/microagents/devops-platform/issues"
-Support = "https://discord.gg/microagents"
 
 [project.scripts]
 microagents = "microagents.cli:app"
 microagents-api = "microagents.api.server:start_server"
 
 [project.optional-dependencies]
-# Core extensions
 api = [
     "fastapi>=0.104",
     "uvicorn[standard]>=0.24",
-    "python-jose[cryptography]>=3.3",
-    "python-multipart>=0.0",
-    "starlette>=0.27",
 ]
-
 cli = [
     "click>=8.1",
     "questionary>=2.0",
-    "pyfiglet>=0.8",
-    "tabulate>=0.9",
-    "halo>=0.0.31",
-    "progress>=1.6",
-    "pygments>=2.16",
 ]
-
-# Cloud providers
-aws = [
-    "boto3>=1.34",
-    "botocore>=1.34",
-    "aioboto3>=12.0",
-    "aws-lambda-powertools>=2.26",
-]
-
-azure = [
-    "azure-identity>=1.15",
-    "azure-mgmt-resource>=23.0",
-    "azure-mgmt-compute>=30.0",
-    "azure-mgmt-monitor>=6.0",
-]
-
-gcp = [
-    "google-cloud-storage>=2.10",
-    "google-cloud-monitoring>=2.15",
-    "google-cloud-logging>=3.8",
-    "google-auth>=2.23",
-]
-
-kubernetes = [
-    "kubernetes>=28.0",
-    "openshift>=0.14",
-]
-
-observability = [
-    "opentelemetry-api>=1.22",
-    "opentelemetry-sdk>=1.22",
-    "opentelemetry-exporter-otlp>=1.22",
-    "jaeger-client>=4.4",
-    "prometheus-flask-exporter>=0.22",
-]
-
-ml = [
-    "numpy>=1.24",
-    "pandas>=2.1",
-    "scikit-learn>=1.3",
-    "joblib>=1.3",
-    "pydantic-ai>=0.1",
-]
-
-# Development dependencies
-dev = [
-    "microagents-platform[api,cli,aws,azure,gcp,kubernetes,observability,ml]",
-    "ipython>=8.18",
-    "ipdb>=0.13",
-    "jupyter>=1.0",
-    "jupyterlab>=4.0",
-]
-
-test = [
-    "pytest>=7.4",
-    "pytest-asyncio>=0.21",
-    "pytest-cov>=4.1",
-    "pytest-mock>=3.12",
-    "pytest-xdist>=3.5",
-    "pytest-benchmark>=4.0",
-    "hypothesis>=6.92",
-    "factory-boy>=3.3",
-    "freezegun>=1.2",
-    "respx>=0.20",
-    "faker>=23.0",
-]
-
-lint = [
-    "ruff>=0.1",
-    "black>=23.11",
-    "mypy>=1.7",
-    "pre-commit>=3.6",
-    "types-requests>=2.31",
-    "types-pyyaml>=6.0",
-    "types-python-dateutil>=2.8",
-]
-
-docs = [
-    "mkdocs>=1.5",
-    "mkdocs-material>=9.4",
-    "mkdocstrings[python]>=0.23",
-    "mkdocs-gen-files>=0.5",
-    "mkdocs-literate-nav>=0.6",
-    "mkdocs-section-index>=0.3",
-]
-
 all = [
-    "microagents-platform[api,cli,aws,azure,gcp,kubernetes,observability,ml,test,lint,docs]",
+    "microagents-platform[api,cli]",
 ]
 
-[tool.hatch.version]
-path = "microagents/__init__.py"
-
-[tool.hatch.build]
-include = [
-    "microagents/**/*.py",
-    "microagents/**/*.pyi",
-    "microagents/py.typed",
-    "README.md",
-    "LICENSE",
-    "pyproject.toml",
-]
+[tool.hatch.build.targets.wheel]
+packages = ["microagents"]
 
 [tool.hatch.envs.default]
 dependencies = [
-    "microagents-platform[dev]",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-benchmark",
+    "numpy",
+    "pandas",
+    "scikit-learn",
+    "psutil",
+    "freezegun",
+    "hypothesis",
 ]
-
-[tool.hatch.envs.test]
-dependencies = [
-    "microagents-platform[test]",
-]
-extra-env-vars = {PYTHONPATH = "src"}
-
-[tool.hatch.envs.lint]
-dependencies = [
-    "microagents-platform[lint]",
-]
-detached = true
-
-[tool.hatch.envs.docs]
-dependencies = [
-    "microagents-platform[docs]",
-]
-detached = true
-
-# Black configuration
-[tool.black]
-line-length = 88
-target-version = ["py312"]
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-    \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-)/
-'''
-
-# Ruff configuration
-[tool.ruff]
-line-length = 88
-target-version = "py312"
-select = [
-    "E",   # pycodestyle errors
-    "W",   # pycodestyle warnings
-    "F",   # pyflakes
-    "I",   # isort
-    "B",   # flake8-bugbear
-    "C4",  # flake8-comprehensions
-    "UP",  # pyupgrade
-    "YTT", # flake8-2020
-    "ANN", # flake8-annotations
-    "S",   # flake8-bandit (security)
-    "TCH", # flake8-type-checking
-    "RUF", # Ruff-specific rules
-]
-ignore = [
-    "ANN101",  # Missing type annotation for self
-    "ANN102",  # Missing type annotation for cls
-    "TCH003",  # Move import to type-checking block
-]
-fixable = ["A", "B", "C", "E", "F", "I", "N", "Q", "S", "T", "W", "YTT"]
-unfixable = ["B904", "B018"]
-
-[tool.ruff.per-file-ignores]
-"__init__.py" = ["F401"]
-"tests/**/*.py" = ["S101"]
-
-[tool.ruff.isort]
-known-first-party = ["microagents"]
-
-[tool.ruff.flake8-annotations]
-suppress-none-returning = true
-allow-star-arg-any = true
-
-[tool.ruff.flake8-tidy-imports]
-ban-relative-imports = "all"
-
-# Mypy configuration
-[tool.mypy]
-python_version = "3.12"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_untyped_decorators = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_no_return = true
-warn_unreachable = true
-strict_equality = true
-exclude = [
-    "^build/",
-    "^dist/",
-    "^\\\\.venv/",
-    "^\\\\.mypy_cache/",
-]
-plugins = [
-    "pydantic.mypy",
-]
-
-[[tool.mypy.overrides]]
-module = [
-    "boto3.*",
-    "botocore.*",
-    "aioboto3.*",
-]
-ignore_missing_imports = true
-
-# Pytest configuration
-[tool.pytest.ini_options]
-minversion = "7.4"
-addopts = [
-    "--strict-markers",
-    "--tb=short",
-    "--durations=10",
-    "--color=yes",
-]
-testpaths = ["tests"]
-python_files = ["test_*.py", "*_test.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "integration: integration tests",
-    "e2e: end-to-end tests",
-    "unit: unit tests",
-]
-filterwarnings = [
-    "ignore::DeprecationWarning",
-]
-
-[tool.coverage.run]
-source = ["microagents"]
-omit = [
-    "microagents/tests/*",
-    "microagents/__pycache__/*",
-    "setup.py",
-]
-branch = true
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "if self.debug:",
-    "if settings.DEBUG",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if 0:",
-    "if __name__ == .__main__.:",
-    "class .*\bProtocol\\):",
-    "@(abc\\.)?abstractmethod",
-]
-show_missing = true
-skip_covered = false
-precision = 2
-
-# Task scripts configuration
-[tool.hatch.envs.default.scripts]
-dev = [
-    "uvicorn microagents.api.server:app --reload --host 0.0.0.0 --port 8000",
-]
-test = "pytest {args:tests}"
-test-cov = "pytest --cov=microagents --cov-report=html --cov-report=term {args:tests}"
-lint = [
-    "ruff check .",
-    "black --check .",
-    "mypy microagents",
-]
-format = [
-    "ruff check --fix .",
-    "black .",
-]
-format-check = "black --check ."
-type-check = "mypy microagents"
-security = "bandit -r microagents -x tests"
-docs = "mkdocs serve"
-docs-build = "mkdocs build"
-build = "hatch build"
-clean = "hatch clean"
-deploy-test = [
-    "hatch build",
-    "twine upload --repository testpypi dist/*",
-]
-deploy-prod = [
-    "hatch build",
-    "twine upload dist/*",
-]
-benchmark = "pytest tests/benchmarks/ -v --benchmark-only"
-audit = "pip-audit"
-
-# Package metadata
-[tool.hatch.metadata]
-allow-direct-references = false
-
-[tool.hatch.metadata.hooks.fancy-pypi-readme]
-content-type = "text/markdown"
-
-# Optional: UV compatibility
+extra-env-vars = {PYTHONPATH = "."}
