@@ -461,7 +461,7 @@ class TemplateHelpers:
     @staticmethod
     def generate_id(prefix: str = "id") -> str:
         """Génère un ID unique"""
-        return f"{prefix}_{int(time.time() * 1000)}_{hashlib.md5(str(time.time()).encode()).hexdigest()[:8]}"
+        return f"{prefix}_{int(time.time() * 1000)}_{hashlib.md5(str(time.time()).encode(), usedforsecurity=False).hexdigest()[:8]}"
 
 
 # =============================================================================
@@ -1553,7 +1553,7 @@ class JinjaTemplateEngine:
     def _compute_context_hash(self, context: Dict[str, Any]) -> str:
         """Calcule un hash du contexte pour le caching"""
         context_str = json.dumps(context, sort_keys=True, default=str)
-        return hashlib.md5(context_str.encode()).hexdigest()
+        return hashlib.md5(context_str.encode(), usedforsecurity=False).hexdigest()
     
     # =========================================================================
     # ERROR REPORTING

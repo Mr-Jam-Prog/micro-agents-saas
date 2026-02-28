@@ -97,7 +97,7 @@ class AgentFilter(BaseModel):
     status: Optional[str] = Field(None, pattern="^(active|inactive|deprecated)$")
     search_query: Optional[str] = None
 
-class A/BTestRequest(BaseModel):
+class ABTestRequest(BaseModel):
     """Modèle pour les tests A/B d'agents."""
     variant_a: AgentExecutionRequest
     variant_b: AgentExecutionRequest
@@ -905,7 +905,7 @@ async def get_agent_metrics(
 @router.post("/ab-test")
 @require_permission("agents:abtest")
 async def run_ab_test(
-    test_request: A/BTestRequest,
+    test_request: ABTestRequest,
     registry: AgentRegistry = Depends(get_agent_registry),
     redis: Redis = Depends(get_redis_client),
     user: dict = Depends(get_current_user)

@@ -2312,7 +2312,7 @@ class CachingValidator(BaseValidator):
         
         # Hash pour la clé de cache
         key_string = json.dumps(stable_data, sort_keys=True)
-        return hashlib.md5(key_string.encode()).hexdigest()
+        return hashlib.md5(key_string.encode(), usedforsecurity=False).hexdigest()
     
     async def validate_async(
         self,

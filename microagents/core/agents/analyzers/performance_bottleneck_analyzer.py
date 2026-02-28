@@ -71,10 +71,10 @@ class BottleneckType(Enum):
 class SeverityLevel(Enum):
     """Niveaux de sévérité"""
     CRITICAL = "critical"  # Impact immédiat sur les utilisateurs
-    HIGH = "high"          Impact significatif
-    MEDIUM = "medium"      Impact modéré
-    LOW = "low"            Impact minimal
-    INFO = "info"          À surveiller
+    HIGH = "high"          # Impact significatif
+    MEDIUM = "medium"      # Impact modéré
+    LOW = "low"            # Impact minimal
+    INFO = "info"          # À surveiller
 
 
 @dataclass
@@ -479,7 +479,7 @@ class DatabaseQueryAnalyzer:
         try:
             query_text = query_data.get('query', '')
             normalized_query = self._normalize_query(query_text)
-            query_hash = hashlib.md5(normalized_query.encode()).hexdigest()
+            query_hash = hashlib.md5(normalized_query.encode(), usedforsecurity=False).hexdigest()
             
             # Analyse de la requête
             query_analysis = {
@@ -511,6 +511,7 @@ class DatabaseQueryAnalyzer:
     
     def _normalize_query(self, query: str) -> str:
         """Normalise une requête SQL pour le regroupement"""
+        import re
         try:
             # Parsing SQL
             parsed = sqlparse(query)

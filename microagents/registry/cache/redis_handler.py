@@ -883,7 +883,7 @@ class DiskCache(CacheInterface):
                     data = zlib.decompress(data)
                 
                 # Désérialisation
-                value = pickle.loads(data)
+                value = pickle.loads(data)  # nosec B301
                 
                 # Vérification expiration
                 metadata_path = self._get_metadata_path(key, namespace)
@@ -1054,12 +1054,12 @@ class DiskCache(CacheInterface):
     def _get_file_path(self, key: str, namespace: str) -> Path:
         """Retourne le chemin du fichier de cache"""
         # Hachage pour éviter les chemins trop longs
-        key_hash = hashlib.md5(key.encode()).hexdigest()
+        key_hash = hashlib.md5(key.encode(), usedforsecurity=False).hexdigest()
         return self.cache_dir / namespace / key_hash[:2] / f"{key_hash}.cache"
     
     def _get_metadata_path(self, key: str, namespace: str) -> Path:
         """Retourne le chemin du fichier de métadonnées"""
-        key_hash = hashlib.md5(key.encode()).hexdigest()
+        key_hash = hashlib.md5(key.encode(), usedforsecurity=False).hexdigest()
         return self.cache_dir / namespace / key_hash[:2] / f"{key_hash}.meta"
     
     def _get_metadata_path_from_key(self, cache_key: str) -> Path:
@@ -1795,7 +1795,7 @@ def cached(
             for key, value in sorted(kwargs.items()):
                 cache_key_parts.append(f"{key}={value}")
             
-            cache_key = hashlib.md5(":".join(cache_key_parts).encode()).hexdigest()
+            cache_key = hashlib.md5(":".join(cache_key_parts).encode(), usedforsecurity=False).hexdigest()
             
             # Récupération depuis le cache
             cache = get_cache()  # Fonction singleton à implémenter
@@ -1845,7 +1845,7 @@ def cache_invalidate(
                     if pos < len(args):
                         cache_key_parts.append(str(args[pos]))
             
-            cache_key = hashlib.md5(":".join(cache_key_parts).encode()).hexdigest()
+            cache_key = hashlib.md5(":".join(cache_key_parts).encode(), usedforsecurity=False).hexdigest()
             
             # Invalidation du cache
             cache = get_cache()

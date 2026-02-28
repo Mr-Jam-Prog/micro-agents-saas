@@ -385,7 +385,7 @@ class BusinessLogicRule(AlertRule):
     business_metric: str  # "roi", "customer_satisfaction", "conversion_rate"
     expected_trend: str  # "increasing", "decreasing", "stable"
     comparison_period: str = "7d"  # Période de comparaison
-    threshold_percentage: float = 10.0  % Variation seuil
+    threshold_percentage: float = 10.0  # % Variation seuil
     
     def evaluate(self, current_value: float, previous_value: float) -> bool:
         """Évalue la logique métier"""

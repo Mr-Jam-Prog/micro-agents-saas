@@ -1108,7 +1108,7 @@ class {{ agent_class_name }}:
         sorted_data = json.dumps(cache_data, sort_keys=True)
         
         # Hash pour une clé fixe
-        return f"{self.AGENT_NAME}:{hashlib.md5(sorted_data.encode()).hexdigest()}"
+        return f"{self.AGENT_NAME}:{hashlib.md5(sorted_data.encode(), usedforsecurity=False).hexdigest()}"
     
     def _cache_get(self, key: str) -> Optional[Any]:
         """
