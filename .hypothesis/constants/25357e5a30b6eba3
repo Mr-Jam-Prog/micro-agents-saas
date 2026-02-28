@@ -1,0 +1,4 @@
+# file: /app/microagents/core/business_value/calculator.py
+# hypothesis_version: 6.151.9
+
+[0.0, 0.01, 0.05, 0.1, 0.15, 0.9, 1.5, 100, 300, 'CAD', 'EUR', 'GBP', 'JPY', 'USD', 'allocations', 'amount', 'annual', 'annualized_roi', 'breakdown', 'confidence_score', 'daily', 'efficient_frontier', 'expected_roi', 'frontier_points', 'id', 'markowitz', 'moderate', 'monthly', 'optimal_portfolio', 'portfolio_risk', 'quarterly', 'return', 'risk', 'roi_percentage', 'sharpe_ratio', 'total_returns', 'weekly', 'yearly']

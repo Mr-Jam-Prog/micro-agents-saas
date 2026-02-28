@@ -57,7 +57,7 @@ jobs:
 
       - name: Vérification de types avec MyPy
         run: |
-          uv run mypy src/ \
+          uv run mypy microagents/ \
             --strict \
             --show-error-codes \
             --no-error-summary \
@@ -67,7 +67,7 @@ jobs:
 
       - name: Documentation avec pydocstyle
         run: |
-          uv run pydocstyle src/ \
+          uv run pydocstyle microagents/ \
             --convention=google \
             --add-ignore=D104,D107,D203,D213,D406,D407,D413
 
@@ -75,7 +75,7 @@ jobs:
         run: uv run ruff check --select=I --fix .
 
       - name: Analyse de complexité
-        run: uv run radon cc src/ -a -s
+        run: uv run radon cc microagents/ -a -s
 
   # -----------------------------------------------------------------
   # Job: Tests unitaires et d'intégration

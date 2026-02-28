@@ -1,0 +1,4 @@
+# file: /app/microagents/core/business_value/reporting/models.py
+# hypothesis_version: 6.151.9
+
+[0.0, 0.95, 1.0, 99.99, 300.0, 'USD']

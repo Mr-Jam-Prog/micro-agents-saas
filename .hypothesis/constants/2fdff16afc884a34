@@ -1,0 +1,4 @@
+# file: /app/microagents/core/compliance/evidence_collector.py
+# hypothesis_version: 6.151.9
+
+['evidence', 'standards']

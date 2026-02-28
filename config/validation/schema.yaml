@@ -1311,12 +1311,12 @@ utilities:
   # Génération de types
   type_generation:
     python:
-      output: "src/config/types.py"
+      output: "microagents/config/types.py"
       class_per_section: true
       pydantic: true
     
     typescript:
-      output: "web/src/config/types.ts"
+      output: "web/microagents/config/types.ts"
       interface_per_section: true
   
   # Documentation

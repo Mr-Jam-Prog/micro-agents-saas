@@ -39,11 +39,11 @@ from locust.env import Environment
 from locust.runners import LocalRunner, MasterRunner, WorkerRunner
 from prometheus_client import Counter, Gauge, Histogram, Summary
 
-from src.core.base.agent import BaseAgent
-from src.core.agents.detectors.cost_anomaly_detector import CostAnomalyDetector
-from src.monitoring.metrics.collector import MetricsCollector
-from src.registry.cache.redis_handler import RedisCache
-from src.utils.concurrency.manager import ConcurrencyManager
+from microagents.core.base.agent import BaseAgent
+from microagents.core.agents.detectors.cost_anomaly_detector import CostAnomalyDetector
+from microagents.monitoring.metrics.collector import MetricsCollector
+from microagents.registry.cache.redis_handler import RedisCache
+from microagents.utils.concurrency.manager import ConcurrencyManager
 
 
 # ============================================================================
@@ -669,7 +669,7 @@ class TestMemoryProfiling:
     def test_memory_leak_detection(self):
         """Détection de fuites mémoire"""
         import tracemalloc
-        from src.core.business_value.calculator import BusinessValueCalculator
+        from microagents.core.business_value.calculator import BusinessValueCalculator
         
         # Démarre le traçage mémoire
         tracemalloc.start()
@@ -1551,8 +1551,8 @@ class TestStartupPerformance:
         print("\nTest démarrage à chaud...")
         
         # Pré-charge les modules
-        import src.core.base.agent
-        import src.monitoring.metrics.collector
+        import microagents.core.base.agent
+        import microagents.monitoring.metrics.collector
         
         startup_times = []
         
@@ -1611,8 +1611,8 @@ class TestStartupPerformance:
             start_time = time.perf_counter()
             
             # Réutilise les modules déjà chargés
-            import src.core.base.agent
-            import src.monitoring.metrics.collector
+            import microagents.core.base.agent
+            import microagents.monitoring.metrics.collector
             
             # Crée une instance
             agent = Mock(spec=BaseAgent)
@@ -1646,7 +1646,7 @@ class TestROICalculationSpeed:
     @pytest.mark.performance
     def test_roi_calculation_throughput(self):
         """Test du débit des calculs ROI"""
-        from src.core.business_value.calculator import calculate_roi
+        from microagents.core.business_value.calculator import calculate_roi
         
         calculation_counts = [100, 1000, 10000, 100000]
         results = {}

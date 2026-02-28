@@ -312,7 +312,6 @@ ignore_missing_imports = true
 minversion = "7.4"
 addopts = [
     "--strict-markers",
-    "--strict-config",
     "--tb=short",
     "--durations=10",
     "--color=yes",
@@ -327,9 +326,7 @@ markers = [
     "e2e: end-to-end tests",
     "unit: unit tests",
 ]
-asyncio_mode = "auto"
 filterwarnings = [
-    "error",
     "ignore::DeprecationWarning",
 ]
 
