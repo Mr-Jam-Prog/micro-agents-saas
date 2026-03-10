@@ -4,6 +4,7 @@ import statistics
 import time
 import json
 import threading
+from pathlib import Path
 from typing import List, Optional, Union, Any, Dict
 from pydantic import BaseModel, Field, model_validator, field_validator, ConfigDict, field_serializer
 from datetime import datetime, timezone
@@ -183,7 +184,6 @@ class BusinessValueCalculator:
 
         # Target period normalization
         target_factor = period_factors.get(period, 1)
-        # For ROI percentage, usually we express it as an annual rate
         roi_annual = ((total_annual_returns - investment) / investment * 100) if investment != 0 else 0
 
         return {
@@ -274,5 +274,7 @@ class ReportExporter:
                 if isinstance(o, datetime): return o.isoformat()
                 return super().default(o)
         path = "/tmp/report.pdf"
+        if self.output_dir:
+            path = str(Path(self.output_dir) / "report.json")
         with open(path, "w") as f: json.dump(data if data else {"roi_analysis": {}, "forecast": []}, f, cls=DateTimeEncoder)
         return path

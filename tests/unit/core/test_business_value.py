@@ -482,7 +482,6 @@ class TestBusinessValueCalculator:
         assert "breakdown" in roi
         
         total_returns_monthly = 30000.0 + 20000.0
-        # ROI est annualisé lorsque la période cible est 'annual'
         total_returns_annual = total_returns_monthly * 12
         expected_roi = ((total_returns_annual - investment) / investment) * 100
         assert roi["roi_percentage"] == pytest.approx(expected_roi, rel=1e-10)
@@ -1060,7 +1059,6 @@ class TestPerformanceAndRegression:
 
         # Vérifie qu'aucune régression majeure n'est détectée
         regression_ratio = normal_time / current_time
-        # Utilise une marge généreuse pour éviter les faux positifs en environnement CI
         assert regression_ratio < 5.0, f"Régression inattendue détectée: {regression_ratio:.2f}x plus lent"
     
     def test_memory_leak_detection(self, business_value_calculator):

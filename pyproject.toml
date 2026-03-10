@@ -401,7 +401,4 @@ allow-direct-references = false
 [tool.hatch.metadata.hooks.fancy-pypi-readme]
 content-type = "text/markdown"
 
-[[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
-path = "README.md"
-
 # Optional: UV compatibility
