@@ -23,7 +23,7 @@ app:
   hot_reload:
     enabled: true
     watch_dirs:
-      - "microagents/**/*.py"
+      - "src/**/*.py"
       - "config/**/*.yaml"
       - "templates/**/*"
     poll_interval: 1.0  # secondes
@@ -413,7 +413,7 @@ dev_tools:
       - name: "MicroAgents CLI"
         type: "python"
         request: "launch"
-        program: "microagents/cli/main.py"
+        program: "src/cli/main.py"
         args: ["--dev"]
     
     # Extensions recommandées
@@ -428,7 +428,7 @@ dev_tools:
   intellij:
     run_configurations:
       - name: "Development Server"
-        script_path: "microagents/api/main.py"
+        script_path: "src/api/main.py"
         parameters: "--reload"
         environment_variables:
           ENV: "development"
@@ -476,7 +476,7 @@ dev_tools:
       targets:
         dev: "uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000"
         test: "pytest tests/ -xvs"
-        lint: "ruff check . && black --check . && mypy microagents/"
+        lint: "ruff check . && black --check . && mypy src/"
         format: "ruff check --fix . && black ."
         db-reset: "rm -f microagents_dev.db && alembic upgrade head"
     
@@ -508,7 +508,7 @@ testing:
     auto_run:
       enabled: true
       watch_patterns:
-        - "microagents/**/*.py"
+        - "src/**/*.py"
         - "tests/**/*.py"
       ignore_patterns:
         - "**/__pycache__/**"
@@ -653,7 +653,7 @@ ci_cd:
     commands:
       - "ruff check ."
       - "black --check ."
-      - "mypy microagents/"
+      - "mypy src/"
       - "pytest tests/unit/ -q"
     
     # Notifications
@@ -671,7 +671,7 @@ ci_cd:
         args: ["--check"]
       
       - id: "mypy"
-        args: ["microagents/", "--strict"]
+        args: ["src/", "--strict"]
 
 # ==================== BACKUP & RECOVERY ====================
 backup:

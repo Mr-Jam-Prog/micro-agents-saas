@@ -565,7 +565,7 @@ class BaseSuite(ABC):
             if step.condition:
                 # Evaluate condition
                 try:
-                    condition_met = eval(  # nosec B307
+                    condition_met = eval(
                         step.condition,
                         {"context": self.execution_context, "results": self.agent_results}
                     )

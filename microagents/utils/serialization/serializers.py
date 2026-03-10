@@ -1704,8 +1704,6 @@ __all__ = [
     "benchmark_serialization",
     
     # Streaming
-    "SerializationStream", "json_serializer",
+    "SerializationStream",
     "DeserializationStream",
 ]
-# Global instance
-json_serializer = JSONSerializer()

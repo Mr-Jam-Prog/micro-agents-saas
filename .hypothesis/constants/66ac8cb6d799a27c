@@ -1,4 +1,0 @@
-# file: /app/microagents/core/business_value/forecast/__init__.py
-# hypothesis_version: 6.151.9
-
-[0.02, 0.08, 1.0, 'beta', 'capm', 'expected_return', 'risk', 'risk_adjusted_return', 'scenario_analysis', 'sharpe_ratio']

@@ -1258,7 +1258,7 @@ class DSLParser:
                 break
             
             if token.type == 'STRING':
-                content_parts.append(token.value.strip('"\''))
+                content_parts.append(token.value.strip('"\'')
             else:
                 # Conserve le texte brut pour la documentation
                 if token.type not in ['WHITESPACE', 'NEWLINE', 'INDENT']:

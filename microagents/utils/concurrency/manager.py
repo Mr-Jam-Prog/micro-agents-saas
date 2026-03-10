@@ -211,7 +211,7 @@ class RetryConfig(BaseModel):
         if self.jitter > 0:
             import random
             jitter_amount = delay * self.jitter
-            delay += random.uniform(-jitter_amount, jitter_amount)  # nosec B311
+            delay += random.uniform(-jitter_amount, jitter_amount)
         
         return max(0, delay)
 
@@ -1887,7 +1887,7 @@ class LoadBalancer:
         
         # Sélection aléatoire pondérée
         import random
-        r = random.uniform(0, total_weight)  # nosec B311
+        r = random.uniform(0, total_weight)
         cumulative = 0
         
         for worker in self.workers:

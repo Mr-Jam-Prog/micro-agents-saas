@@ -94,10 +94,10 @@ class AgentFilter(BaseModel):
     capability: Optional[str] = None
     tags: Optional[List[str]] = None
     min_performance: Optional[float] = Field(None, ge=0.0, le=1.0)
-    status: Optional[str] = Field(None, pattern="^(active|inactive|deprecated)$")
+    status: Optional[str] = Field(None, regex="^(active|inactive|deprecated)$")
     search_query: Optional[str] = None
 
-class ABTestRequest(BaseModel):
+class A/BTestRequest(BaseModel):
     """Modèle pour les tests A/B d'agents."""
     variant_a: AgentExecutionRequest
     variant_b: AgentExecutionRequest
@@ -121,7 +121,7 @@ class AgentExportRequest(BaseModel):
     include_config: bool = True
     include_history: bool = False
     include_metrics: bool = False
-    format: str = Field("json", pattern="^(json|yaml|csv)$")
+    format: str = Field("json", regex="^(json|yaml|csv)$")
 
 # Router principal
 router = APIRouter(prefix="/agents", tags=["agents"])
@@ -762,7 +762,7 @@ async def get_execution_history(
     start_date: Optional[datetime] = Query(None),
     end_date: Optional[datetime] = Query(None),
     limit: int = Query(100, ge=1, le=1000),
-    status_filter: Optional[str] = Query(None, pattern="^(success|failed|all)$"),
+    status_filter: Optional[str] = Query(None, regex="^(success|failed|all)$"),
     redis: Redis = Depends(get_redis_client),
     user: dict = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -840,7 +840,7 @@ async def get_execution_history(
 @cache_response(ttl=30)
 async def get_agent_metrics(
     agent_id: str,
-    period: str = Query("24h", pattern="^(1h|24h|7d|30d|90d)$"),
+    period: str = Query("24h", regex="^(1h|24h|7d|30d|90d)$"),
     metrics_collector: MetricsCollector = Depends(),
     user: dict = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -905,7 +905,7 @@ async def get_agent_metrics(
 @router.post("/ab-test")
 @require_permission("agents:abtest")
 async def run_ab_test(
-    test_request: ABTestRequest,
+    test_request: A/BTestRequest,
     registry: AgentRegistry = Depends(get_agent_registry),
     redis: Redis = Depends(get_redis_client),
     user: dict = Depends(get_current_user)
@@ -1318,7 +1318,7 @@ async def download_export(
 @require_permission("agents:import")
 async def import_agents(
     file: bytes = Body(...),
-    format: str = Query("json", pattern="^(json|yaml)$"),
+    format: str = Query("json", regex="^(json|yaml)$"),
     registry: AgentRegistry = Depends(get_agent_registry),
     user: dict = Depends(get_current_user)
 ) -> Dict[str, Any]:

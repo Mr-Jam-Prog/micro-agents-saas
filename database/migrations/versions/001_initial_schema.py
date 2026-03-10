@@ -145,7 +145,6 @@ def create_agent_tables():
         sa.Column('updated_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('deprecated_at', sa.DateTime),
-        
         # Indexes
         sa.Index('idx_agent_types_category', 'category'),
         sa.Index('idx_agent_types_version', 'version'),
@@ -181,7 +180,6 @@ def create_agent_tables():
         sa.Column('updated_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('deleted_at', sa.DateTime),
-        
         # Indexes
         sa.Index('idx_agents_tenant', 'tenant_id'),
         sa.Index('idx_agents_status', 'status'),
@@ -207,7 +205,6 @@ def create_agent_tables():
                  server_default=sa.text("'{}'::jsonb")),
         sa.Column('created_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
-        
         # Indexes
         sa.Index('idx_agent_deps_agent', 'agent_id'),
         sa.Index('idx_agent_deps_depends', 'depends_on_agent_id'),
@@ -253,17 +250,15 @@ def create_execution_tables():
         sa.Column('created_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('created_by', UUID()),
-        
         # Partitioning by month
         sa.PrimaryKeyConstraint('id', 'created_at'),
-        postgresql_partition_by='RANGE (created_at)',
-        
         # Indexes
         sa.Index('idx_exec_jobs_tenant', 'tenant_id'),
         sa.Index('idx_exec_jobs_status', 'status'),
         sa.Index('idx_exec_jobs_agent', 'agent_id'),
         sa.Index('idx_exec_jobs_created', 'created_at'),
         sa.Index('idx_exec_jobs_completed', 'completed_at'),
+        postgresql_partition_by='RANGE (created_at)',
         comment='Execution jobs with partitioning for performance'
     )
     
@@ -296,7 +291,6 @@ def create_execution_tables():
         sa.Column('started_at', sa.DateTime),
         sa.Column('completed_at', sa.DateTime),
         sa.Column('duration_ms', sa.BigInteger),
-        
         # Indexes
         sa.Index('idx_exec_steps_job', 'job_id'),
         sa.Index('idx_exec_steps_status', 'status'),
@@ -324,7 +318,6 @@ def create_execution_tables():
                  server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('updated_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
-        
         # Indexes
         sa.Index('idx_job_schedules_tenant', 'tenant_id'),
         sa.Index('idx_job_schedules_active', 'is_active'),
@@ -367,16 +360,14 @@ def create_business_value_tables():
                  server_default=sa.text("'{}'::jsonb")),
         sa.Column('created_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
-        
         # Partitioning by month
         sa.PrimaryKeyConstraint('id', 'calculation_date'),
-        postgresql_partition_by='RANGE (calculation_date)',
-        
         # Indexes
         sa.Index('idx_roi_tenant', 'tenant_id'),
         sa.Index('idx_roi_category', 'category'),
         sa.Index('idx_roi_date', 'calculation_date'),
         sa.Index('idx_roi_period', 'period_start', 'period_end'),
+        postgresql_partition_by='RANGE (calculation_date)',
         comment='ROI calculations with partitioning'
     )
     
@@ -410,7 +401,6 @@ def create_business_value_tables():
         sa.Column('action_taken', sa.Text),
         sa.Column('created_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
-        
         # Indexes
         sa.Index('idx_cost_savings_tenant', 'tenant_id'),
         sa.Index('idx_cost_savings_date', 'savings_date'),
@@ -442,7 +432,6 @@ def create_business_value_tables():
                  server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('updated_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
-        
         # Indexes
         sa.Index('idx_kpis_tenant', 'tenant_id'),
         sa.Index('idx_kpis_category', 'kpi_category'),
@@ -480,7 +469,6 @@ def create_user_tables():
                  server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('updated_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
-        
         # Indexes
         sa.Index('idx_tenants_slug', 'slug'),
         sa.Index('idx_tenants_active', 'is_active'),
@@ -515,7 +503,6 @@ def create_user_tables():
         sa.Column('updated_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('deleted_at', sa.DateTime),
-        
         # Indexes
         sa.Index('idx_users_tenant', 'tenant_id'),
         sa.Index('idx_users_email', 'email'),
@@ -547,7 +534,6 @@ def create_user_tables():
         sa.Column('created_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('created_by', UUID()),
-        
         # Indexes
         sa.Index('idx_api_keys_tenant', 'tenant_id'),
         sa.Index('idx_api_keys_user', 'user_id'),
@@ -576,7 +562,6 @@ def create_user_tables():
         sa.Column('revoked_at', sa.DateTime),
         sa.Column('created_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
-        
         # Indexes
         sa.Index('idx_user_sessions_user', 'user_id'),
         sa.Index('idx_user_sessions_token', 'session_token'),
@@ -613,7 +598,6 @@ def create_billing_tables():
                  server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('updated_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
-        
         # Indexes
         sa.Index('idx_plans_slug', 'slug'),
         sa.Index('idx_plans_active', 'is_active'),
@@ -646,7 +630,6 @@ def create_billing_tables():
                  server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('updated_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
-        
         # Indexes
         sa.Index('idx_subscriptions_tenant', 'tenant_id'),
         sa.Index('idx_subscriptions_status', 'status'),
@@ -682,7 +665,6 @@ def create_billing_tables():
                  server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('updated_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
-        
         # Indexes
         sa.Index('idx_invoices_tenant', 'tenant_id'),
         sa.Index('idx_invoices_number', 'invoice_number'),
@@ -708,7 +690,6 @@ def create_billing_tables():
                  server_default=sa.text("'{}'::jsonb")),
         sa.Column('created_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
-        
         # Indexes
         sa.Index('idx_line_items_invoice', 'invoice_id'),
         comment='Detailed invoice line items'
@@ -744,17 +725,15 @@ def create_audit_tables():
         sa.Column('error_message', sa.Text),
         sa.Column('created_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
-        
         # Partitioning by month
         sa.PrimaryKeyConstraint('id', 'created_at'),
-        postgresql_partition_by='RANGE (created_at)',
-        
         # Indexes
         sa.Index('idx_audit_logs_tenant', 'tenant_id'),
         sa.Index('idx_audit_logs_user', 'user_id'),
         sa.Index('idx_audit_logs_event', 'event_type'),
         sa.Index('idx_audit_logs_resource', 'resource_type', 'resource_id'),
         sa.Index('idx_audit_logs_created', 'created_at'),
+        postgresql_partition_by='RANGE (created_at)',
         comment='Comprehensive audit logging with partitioning'
     )
     
@@ -794,7 +773,6 @@ def create_audit_tables():
                  server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('updated_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
-        
         # Indexes
         sa.Index('idx_security_events_tenant', 'tenant_id'),
         sa.Index('idx_security_events_severity', 'severity'),
@@ -831,7 +809,6 @@ def create_configuration_tables():
                  server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('updated_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
-        
         # Indexes
         sa.Index('idx_config_templates_type', 'config_type'),
         sa.Index('idx_config_templates_public', 'is_public'),
@@ -858,7 +835,6 @@ def create_configuration_tables():
         sa.Column('updated_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('updated_by', UUID()),
-        
         # Indexes
         sa.Index('idx_tenant_configs_tenant', 'tenant_id'),
         sa.Index('idx_tenant_configs_key', 'config_key'),
@@ -888,7 +864,6 @@ def create_configuration_tables():
         sa.Column('updated_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('updated_by', UUID()),
-        
         # Indexes
         sa.Index('idx_system_configs_key', 'config_key'),
         sa.Index('idx_system_configs_category', 'category'),
@@ -915,7 +890,6 @@ def create_cache_tables():
                  server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('tags', ARRAY(sa.String(100)),
                  server_default=sa.text("'{}'::text[]")),
-        
         # Indexes
         sa.Index('idx_cache_expires', 'expires_at'),
         sa.Index('idx_cache_tags', 'tags', postgresql_using='gin'),
@@ -938,7 +912,6 @@ def create_cache_tables():
         sa.Column('window_end', sa.DateTime, nullable=False),
         sa.Column('created_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
-        
         # Indexes
         sa.Index('idx_rate_limits_tenant', 'tenant_id'),
         sa.Index('idx_rate_limits_user', 'user_id'),
@@ -972,7 +945,6 @@ def create_cache_tables():
         sa.Column('completed_at', sa.DateTime),
         sa.Column('created_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
-        
         # Indexes
         sa.Index('idx_job_queue_tenant', 'tenant_id'),
         sa.Index('idx_job_queue_status', 'status'),
@@ -1002,16 +974,14 @@ def create_monitoring_tables():
         sa.Column('tags', JSONB(),
                  server_default=sa.text("'{}'::jsonb")),
         sa.Column('unit', sa.String(20)),
-        
         # Partitioning by day for time-series data
         sa.PrimaryKeyConstraint('id', 'timestamp'),
-        postgresql_partition_by='RANGE (timestamp)',
-        
         # Indexes
         sa.Index('idx_metrics_tenant', 'tenant_id'),
         sa.Index('idx_metrics_name', 'metric_name'),
         sa.Index('idx_metrics_timestamp', 'timestamp'),
         sa.Index('idx_metrics_tags', 'tags', postgresql_using='gin'),
+        postgresql_partition_by='RANGE (timestamp)',
         comment='Time-series metrics storage with partitioning'
     )
     
@@ -1054,7 +1024,6 @@ def create_monitoring_tables():
                  server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('updated_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
-        
         # Indexes
         sa.Index('idx_alerts_tenant', 'tenant_id'),
         sa.Index('idx_alerts_severity', 'severity'),
@@ -1088,7 +1057,6 @@ def create_monitoring_tables():
                  server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('updated_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
-        
         # Indexes
         sa.Index('idx_health_checks_tenant', 'tenant_id'),
         sa.Index('idx_health_checks_agent', 'agent_id'),
@@ -1126,7 +1094,6 @@ def create_compliance_tables():
                  server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('updated_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
-        
         # Indexes
         sa.Index('idx_compliance_controls_tenant', 'tenant_id'),
         sa.Index('idx_compliance_controls_standard', 'standard'),
@@ -1155,7 +1122,6 @@ def create_compliance_tables():
         sa.Column('notes', sa.Text),
         sa.Column('created_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
-        
         # Indexes
         sa.Index('idx_compliance_evidence_control', 'control_id'),
         sa.Index('idx_compliance_evidence_collected', 'collected_at'),
@@ -1187,7 +1153,6 @@ def create_compliance_tables():
                  server_default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('updated_at', sa.DateTime, nullable=False,
                  server_default=sa.text('CURRENT_TIMESTAMP')),
-        
         # Indexes
         sa.Index('idx_audit_findings_tenant', 'tenant_id'),
         sa.Index('idx_audit_findings_control', 'control_id'),

@@ -90,7 +90,7 @@ class AgentExecuteRequest(BaseModel):
     agent_id: str = Field(..., description="ID de l'agent à exécuter")
     parameters: Dict[str, Any] = Field(default_factory=dict, description="Paramètres d'exécution")
     context: Dict[str, Any] = Field(default_factory=dict, description="Contexte additionnel")
-    priority: str = Field("normal", pattern="^(low|normal|high|critical)$")
+    priority: str = Field("normal", regex="^(low|normal|high|critical)$")
     async_execution: bool = Field(True, description="Exécution asynchrone")
     timeout_seconds: int = Field(300, ge=1, le=3600)
     
@@ -780,7 +780,7 @@ async def calculate_roi(
 )
 async def get_cfo_dashboard(
     timeframe_days: int = Query(30, ge=1, le=365),
-    currency: str = Query("USD", pattern="^[A-Z]{3}$"),
+    currency: str = Query("USD", regex="^[A-Z]{3}$"),
     current_user: Dict[str, Any] = Depends(verify_api_key),
     calculator: BusinessValueCalculator = Depends(get_business_value_calculator),
     registry: AgentRegistry = Depends(get_agent_registry)
@@ -921,8 +921,8 @@ async def run_workflow(
     tags=["Monitoring"]
 )
 async def get_monitoring_metrics(
-    timeframe: str = Query("1h", pattern="^(1h|24h|7d|30d)$"),
-    granularity: str = Query("5m", pattern="^(1m|5m|15m|1h)$"),
+    timeframe: str = Query("1h", regex="^(1h|24h|7d|30d)$"),
+    granularity: str = Query("5m", regex="^(1m|5m|15m|1h)$"),
     current_user: Dict[str, Any] = Depends(verify_api_key),
     metrics_collector: MetricsCollector = Depends(get_metrics_collector)
 ):

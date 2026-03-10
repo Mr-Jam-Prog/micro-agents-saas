@@ -102,7 +102,7 @@ class Address(BaseModel):
     country: str = "US"
     
     class Config:
-        json_schema_extra = {
+        schema_extra = {
             "example": {
                 "line1": "123 Main St",
                 "city": "San Francisco",

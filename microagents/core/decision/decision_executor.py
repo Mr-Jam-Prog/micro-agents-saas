@@ -863,7 +863,7 @@ class DecisionExecutor:
         import time
         
         unique_str = f"{uuid.uuid4()}{time.time()}"
-        return f"EXEC-{hashlib.md5(unique_str.encode(), usedforsecurity=False).hexdigest()[:8].upper()}"
+        return f"EXEC-{hashlib.md5(unique_str.encode()).hexdigest()[:8].upper()}"
     
     async def get_execution_status(self, execution_id: str) -> Optional[Dict[str, Any]]:
         """Récupère le statut d'une exécution par son ID."""

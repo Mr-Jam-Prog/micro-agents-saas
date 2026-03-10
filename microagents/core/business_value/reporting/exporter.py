@@ -79,7 +79,7 @@ class ReportTemplate(BaseModel):
     id: UUID = Field(default_factory=uuid4)
     name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = None
-    template_type: str = Field(..., pattern="^(pdf|excel|pptx|html)$")
+    template_type: str = Field(..., regex="^(pdf|excel|pptx|html)$")
     
     # Layout configuration
     header_html: Optional[str] = None
@@ -108,7 +108,7 @@ class ReportTemplate(BaseModel):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
     class Config:
-        json_schema_extra = {
+        schema_extra = {
             "example": {
                 "name": "Executive Summary Template",
                 "description": "Template pour les rapports exécutifs",
@@ -121,7 +121,7 @@ class ReportTemplate(BaseModel):
 
 class ExportConfig(BaseModel):
     """Configuration d'export"""
-    format: str = Field(..., pattern="^(pdf|excel|pptx|json|csv|html)$")
+    format: str = Field(..., regex="^(pdf|excel|pptx|json|csv|html)$")
     language: str = "en"
     timezone: str = "UTC"
     
@@ -162,7 +162,7 @@ class ScheduledReport(BaseModel):
     id: UUID = Field(default_factory=uuid4)
     name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = None
-    report_type: str = Field(..., pattern="^(monthly|quarterly|weekly|daily|custom)$")
+    report_type: str = Field(..., regex="^(monthly|quarterly|weekly|daily|custom)$")
     
     # Schedule
     cron_expression: str  # Format cron
@@ -189,7 +189,7 @@ class ScheduledReport(BaseModel):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
     class Config:
-        json_schema_extra = {
+        schema_extra = {
             "example": {
                 "name": "Monthly ROI Report",
                 "report_type": "monthly",
@@ -551,7 +551,7 @@ class ReportExporter:
              f"{(cost_savings.incident_resolution_savings / cost_savings.total_savings * 100):.1f}%"],
             ['Sécurité & Conformité', cost_savings.security_compliance_savings,
              f"{(cost_savings.security_compliance_savings / cost_savings.total_savings * 100):.1f}%"],
-            ['<b>Total</b>', f"<b>${cost_savings.total_savings:,.0f}</b>", '100%']
+            ['<b>Total</b>', f"<b>${cost_savings.total_savings:,.0f}</b>', '100%']
         ]
         
         table = Table(data, colWidths=[200, 100, 80])
@@ -1583,20 +1583,6 @@ class ReportExporter:
         return elements
     
     # Méthodes similaires pour Excel et PowerPoint...
-
-    def generate_report(self, data: Dict[str, Any], format: str = "json", template: str = "default") -> str:
-        """Génère un rapport et le sauvegarde dans un fichier."""
-        filename = f"report_{uuid4().hex[:8]}.{format}"
-        filepath = self.output_dir / filename
-
-        if format == "json":
-            with open(filepath, 'w') as f:
-                json.dump(data, f, default=str)
-        else:
-            # Fallback pour les autres formats dans cette implémentation simplifiée
-            filepath.write_text(str(data))
-
-        return str(filepath)
 
 
 # ==================== FACTORY POUR LES RAPPORTS ====================

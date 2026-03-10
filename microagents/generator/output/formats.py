@@ -52,10 +52,10 @@ class CodeStyle(BaseModel):
     """Configuration du style de code."""
     indent_size: int = Field(default=4, ge=2, le=8)
     max_line_length: int = Field(default=88, ge=60, le=120)
-    quote_style: str = Field(default="double", pattern="^(single|double)$")
+    quote_style: str = Field(default="double", regex="^(single|double)$")
     trailing_commas: bool = True
     sort_imports: bool = True
-    docstring_style: str = Field(default="google", pattern="^(google|numpy|sphinx|pep257)$")
+    docstring_style: str = Field(default="google", regex="^(google|numpy|sphinx|pep257)$")
     
     class Config:
         extra = "forbid"

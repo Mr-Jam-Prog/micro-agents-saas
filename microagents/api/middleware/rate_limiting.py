@@ -113,7 +113,7 @@ class GracefulDegradationLevel(str, Enum):
     """Levels of graceful degradation."""
     
     FULL = "full"  # Full functionality
-    LIMITED = "limited"  # Some features disabled
+    LIMITED = "limited"  Some features disabled
     DEGRADED = "degraded"  # Essential features only
     READ_ONLY = "read_only"  # Read operations only
     MAINTENANCE = "maintenance"  # Critical operations only
