@@ -71,10 +71,10 @@ class BottleneckType(Enum):
 class SeverityLevel(Enum):
     """Niveaux de sévérité"""
     CRITICAL = "critical"  # Impact immédiat sur les utilisateurs
-    HIGH = "high"          Impact significatif
-    MEDIUM = "medium"      Impact modéré
-    LOW = "low"            Impact minimal
-    INFO = "info"          À surveiller
+    HIGH = "high"          # Impact significatif
+    MEDIUM = "medium"      # Impact modéré
+    LOW = "low"            # Impact minimal
+    INFO = "info"          # À surveiller
 
 
 @dataclass

@@ -97,7 +97,7 @@ class AgentFilter(BaseModel):
     status: Optional[str] = Field(None, regex="^(active|inactive|deprecated)$")
     search_query: Optional[str] = None
 
-class A/BTestRequest(BaseModel):
+class ABTestRequest(BaseModel):
     """Modèle pour les tests A/B d'agents."""
     variant_a: AgentExecutionRequest
     variant_b: AgentExecutionRequest

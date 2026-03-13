@@ -50,7 +50,7 @@ class PricingModel(str, Enum):
     ROI_BASED = "roi_based"  # Pourcentage des économies
     SEAT_BASED = "seat_based"  # Par utilisateur
     REVENUE_SHARE = "revenue_share"  # Partage de revenus
-    CUSTOM = "custom"  Personnalisé
+    CUSTOM = "custom"  # Personnalisé
 
 
 class PlanTier(str, Enum):
@@ -281,7 +281,7 @@ class UsageRecord(BaseModel):
     unit_price: Decimal = Field(..., ge=0)
 
     # Pricing
-    amount: Decimal = Field(..., ge=0)  = quantity * unit_price
+    amount: Decimal = Field(..., ge=0)  # = quantity * unit_price
     currency: Currency = Currency.USD
 
     # Time period
@@ -1058,7 +1058,7 @@ class PricingModelFactory:
             ),
             trial_days=0,
             is_public=False,  # Négociation requise
-            roi_percentage=Decimal('15'),  % des économies
+            roi_percentage=Decimal('15'),  # % des économies
             roi_min_amount=Decimal('10000')
         )
 
