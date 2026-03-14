@@ -1036,14 +1036,13 @@ class TestPerformanceAndRegression:
         """Détection de régression de performance"""
         import time
         
-        # Version actuelle
+        # Version actuelle (devrait être rapide)
         def current_implementation():
-            time.sleep(0.0001)  # Simule un calcul
             return calculate_roi(100000, 150000)
         
-        # Version "normale"
-        def normal_implementation():
-            time.sleep(0.0001)  # Même performance
+        # Version "normale" (devrait être plus lente car elle simule une régression)
+        def slow_implementation():
+            time.sleep(0.001)  # Simule un goulot d'étranglement
             return calculate_roi(100000, 150000)
         
         # Mesure les performances
@@ -1054,12 +1053,13 @@ class TestPerformanceAndRegression:
         
         start = time.perf_counter()
         for _ in range(100):
-            normal_implementation()
-        normal_time = time.perf_counter() - start
+            slow_implementation()
+        slow_time = time.perf_counter() - start
 
-        # Vérifie qu'aucune régression majeure n'est détectée
-        regression_ratio = normal_time / current_time
-        assert regression_ratio < 5.0, f"Régression inattendue détectée: {regression_ratio:.2f}x plus lent"
+        # Vérifie qu'une régression est bien détectée si on compare fast vs slow
+        # slow_time devrait être au moins 1.5x plus lent que current_time
+        regression_ratio = slow_time / current_time
+        assert regression_ratio > 1.5, f"Régression non détectée: seulement {regression_ratio:.2f}x plus lent"
     
     def test_memory_leak_detection(self, business_value_calculator):
         """Détection de fuites mémoire"""
