@@ -84,7 +84,7 @@ class RemediationPriority(str, Enum):
     HIGH = "high"              # < 15 minutes
     MEDIUM = "medium"          # < 1 heure
     LOW = "low"               # < 4 heures
-    PLANNED = "planned"       # > 24 heures
+    PLANNED = "planned"        # > 24 heures
 
 
 @dataclass

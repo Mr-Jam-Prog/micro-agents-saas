@@ -551,7 +551,7 @@ class ReportExporter:
              f"{(cost_savings.incident_resolution_savings / cost_savings.total_savings * 100):.1f}%"],
             ['Sécurité & Conformité', cost_savings.security_compliance_savings,
              f"{(cost_savings.security_compliance_savings / cost_savings.total_savings * 100):.1f}%"],
-            ['<b>Total</b>', f"<b>${cost_savings.total_savings:,.0f}</b>", "100%"]
+            ['<b>Total</b>', f"<b>${cost_savings.total_savings:,.0f}</b>", '100%']
         ]
         
         table = Table(data, colWidths=[200, 100, 80])
