@@ -716,7 +716,7 @@ documentation:
       # Démarrer l'agent en mode développement
       1. Cloner le repository
       2. Exécuter `make dev-env`
-      3. Lancer `python -m src.agents.cost_anomaly_detector`
+      3. Lancer `python -m microagents.agents.cost_anomaly_detector`
       
     configuration_examples: |
       # Exemple de configuration YAML

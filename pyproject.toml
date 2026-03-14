@@ -21,7 +21,7 @@ classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Intended Audience :: System Administrators",
-    "Topic :: Software Development :: DevOps",
+    "Topic :: Software Development",
     "Topic :: System :: Monitoring",
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
@@ -66,8 +66,8 @@ Issues = "https://github.com/microagents/devops-platform/issues"
 Support = "https://discord.gg/microagents"
 
 [project.scripts]
-microagents = "microagents.cli:app"
-microagents-api = "microagents.api.server:start_server"
+microagents = "microagents.cli.main:app"
+microagents-api = "microagents.api.main:app"
 
 [project.optional-dependencies]
 # Core extensions
@@ -400,5 +400,8 @@ allow-direct-references = false
 
 [tool.hatch.metadata.hooks.fancy-pypi-readme]
 content-type = "text/markdown"
+fragments = [
+    {path = "README.md"},
+]
 
 # Optional: UV compatibility

@@ -23,7 +23,7 @@ app:
   hot_reload:
     enabled: true
     watch_dirs:
-      - "src/**/*.py"
+      - "microagents/**/*.py"
       - "config/**/*.yaml"
       - "templates/**/*"
     poll_interval: 1.0  # secondes
@@ -406,14 +406,14 @@ dev_tools:
         type: "python"
         request: "launch"
         module: "uvicorn"
-        args: ["src.api.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
+        args: ["microagents.api.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
         env: {"ENV": "development"}
         justMyCode: false
       
       - name: "MicroAgents CLI"
         type: "python"
         request: "launch"
-        program: "src/cli/main.py"
+        program: "microagents/cli/main.py"
         args: ["--dev"]
     
     # Extensions recommandées
@@ -428,7 +428,7 @@ dev_tools:
   intellij:
     run_configurations:
       - name: "Development Server"
-        script_path: "src/api/main.py"
+        script_path: "microagents/api/main.py"
         parameters: "--reload"
         environment_variables:
           ENV: "development"
@@ -474,9 +474,9 @@ dev_tools:
   cli_tools:
     make:
       targets:
-        dev: "uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000"
+        dev: "uvicorn microagents.api.main:app --reload --host 0.0.0.0 --port 8000"
         test: "pytest tests/ -xvs"
-        lint: "ruff check . && black --check . && mypy src/"
+        lint: "ruff check . && black --check . && mypy microagents/"
         format: "ruff check --fix . && black ."
         db-reset: "rm -f microagents_dev.db && alembic upgrade head"
     
@@ -496,7 +496,7 @@ testing:
       - "--disable-warnings"
       - "--no-header"
       - "-q"  # Quiet mode
-      - "--cov=src"
+      - "--cov=microagents"
       - "--cov-report=term-missing"
     
     markers:
@@ -508,7 +508,7 @@ testing:
     auto_run:
       enabled: true
       watch_patterns:
-        - "src/**/*.py"
+        - "microagents/**/*.py"
         - "tests/**/*.py"
       ignore_patterns:
         - "**/__pycache__/**"
@@ -628,7 +628,7 @@ env_vars:
   # Variables d'environnement spécifiques au dev
   required:
     ENV: "development"
-    PYTHONPATH: "./src"
+    PYTHONPATH: "./microagents"
   
   optional:
     DEBUG: "1"
@@ -653,7 +653,7 @@ ci_cd:
     commands:
       - "ruff check ."
       - "black --check ."
-      - "mypy src/"
+      - "mypy microagents/"
       - "pytest tests/unit/ -q"
     
     # Notifications
@@ -671,7 +671,7 @@ ci_cd:
         args: ["--check"]
       
       - id: "mypy"
-        args: ["src/", "--strict"]
+        args: ["microagents/", "--strict"]
 
 # ==================== BACKUP & RECOVERY ====================
 backup:
