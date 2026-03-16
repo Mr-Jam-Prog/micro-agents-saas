@@ -159,8 +159,8 @@ preload_cache() {
     if [ "${PRELOAD_CACHE:-false}" = "true" ]; then
         echo "Preloading cache..."
         python -c "
-from src.core.base.registry import AgentRegistry
-from src.registry.cache.redis_handler import RedisHandler
+from microagents.core.base.registry import AgentRegistry
+from microagents.registry.cache.redis_handler import RedisHandler
 import asyncio
 
 async def preload():

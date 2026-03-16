@@ -1311,7 +1311,7 @@ utilities:
   # Génération de types
   type_generation:
     python:
-      output: "src/config/types.py"
+      output: "microagents/config/types.py"
       class_per_section: true
       pydantic: true
     

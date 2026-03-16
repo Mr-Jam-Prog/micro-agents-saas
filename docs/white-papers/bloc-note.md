@@ -1,4 +1,4 @@
-## src/core/base/registry.py
+## microagents/core/base/registry.py
 📋 Résumé des fonctionnalités
 
 ✅ 1. CRUD Operations complètes
@@ -79,7 +79,7 @@ Gestion d'erreurs : Exceptions spécifiques
 Performance : Recherche optimisée, cache LRU
 Extensibilité : Facile à étendre avec nouveaux plugins
 
-## src/core/base/context.py
+## microagents/core/base/context.py
 📋 Résumé des fonctionnalités
 
 ✅ 1. Champs multi-tenant complets
@@ -270,7 +270,7 @@ L'utilisation commerciale est autorisée sans restrictions
 
 Le README est prêt à être utilisé et présente un aspect professionnel adapté à un SaaS DevOps d'entreprise.
 
-## src/core/business_value/calculator.py
+## microagents/core/business_value/calculator.py
 📋 Résumé des fonctionnalités
 
 ✅ 1. 6 catégories de valeur business
@@ -361,7 +361,7 @@ Factory pattern pour création simplifiée
 Calculs asynchrones pour performance
 Ce calculateur de valeur business est une solution enterprise-grade pour quantifier précisément la valeur des investissements DevOps et des micro-agents, avec toutes les analyses financières et statistiques nécessaires pour les décisions business éclairées. 🏗️💰
 
-## src/core/suites/base.py
+## microagents/core/suites/base.py
 Design patterns implémentés :
 
 ✅ Strategy Pattern - PricingStrategy pour différents modèles de tarification
@@ -390,7 +390,7 @@ Configurable - Builder pattern pour une configuration déclarative
 Conforme aux standards - Utilisation de Pydantic pour la validation
 Production-ready - Gestion d'erreurs, métriques, SLA, etc.
 
-## src/core/agents/detectors/cost_anomaly_detector.py
+## microagents/core/agents/detectors/cost_anomaly_detector.py
 Algorithmes implémentés :
 
 ✅ Statistical anomaly detection :
@@ -450,7 +450,7 @@ Configurable : Paramètres ajustables via DetectionConfig
 Asynchrone : Utilisation d'asyncio pour les opérations I/O
 Documenté : Types et docstrings complets
 
-## src/core/agents/analyzers/root_cause_accelerator.py
+## microagents/core/agents/analyzers/root_cause_accelerator.py
 Techniques implémentées :
 
 ✅ Correlation analysis :
@@ -612,7 +612,7 @@ Pratique : Fonctions utilitaires pour l'intégration
 Professionnel : Conforme aux standards Python
 Le parser est maintenant prêt à être utilisé dans le système MicroAgents pour transformer le code DSL en définitions d'agents exploitables.
 
-## src/dsl/compiler/compiler.py
+## microagents/dsl/compiler/compiler.py
 Oui, le fichier `src/dsl/compiler/compiler.py` est maintenant complet. Voici un récapitulatif complet de toutes les fonctionnalités implémentées :
 
     ### ✅ **Fonctionnalités complètes du DSL Compiler** :
@@ -786,7 +786,7 @@ result = compile_dsl(
 
 Le compilateur est maintenant complet et prêt à transformer les définitions DSL en code exécutable, documentation, tests et configurations de déploiement pour le système MicroAgents.
 
-## src/core/agents/detectors/__init__.py
+## microagents/core/agents/detectors/__init__.py
 Voici un récapitulatif détaillé de tout ce qui a été implémenté :
 
 ✅ Architecture complète des détecteurs :
@@ -946,7 +946,7 @@ metrics = detector.get_performance_metrics()
 print(f"📊 Précision: {metrics['accuracy']:.2%}")
 Le module est maintenant complètement fonctionnel avec une architecture solide pour supporter les 400+ détecteurs mentionnés. Chaque nouveau détecteur peut être ajouté en suivant le pattern établi, garantissant la cohérence et la maintenabilité à grande échelle.
 
-## src/api/main.py
+## microagents/api/main.py
 Voici un récapitulatif exhaustif de toutes les fonctionnalités implémentées :
 
     ## ✅ **Application FastAPI Complète** :
@@ -1221,7 +1221,7 @@ uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
 
 L'API est maintenant complète avec toutes les fonctionnalités demandées et prête à être intégrée dans l'écosystème MicroAgents.
 
-## src/api/v1/agents.py
+## microagents/api/v1/agents.py
 Caractéristiques principales incluses :
 
 ✅ 1. Execute agent avec context
@@ -1322,7 +1322,7 @@ Audit logging complet
 Permission checking par agent/catégorie
 Ce fichier fournit une API complète et professionnelle pour gérer 1400 micro-agents avec toutes les fonctionnalités requises pour un SaaS DevOps d'entreprise.
 
-## src/cli/main.py
+## microagents/cli/main.py
     ## Caractéristiques principales incluses :
 
 ### ✅ **1. Groupes de commandes organisés**
@@ -1471,7 +1471,7 @@ Ce fichier fournit une API complète et professionnelle pour gérer 1400 micro-a
 
 Ce CLI fournit une interface complète et professionnelle pour gérer la plateforme MicroAgents avec une expérience utilisateur riche et des fonctionnalités adaptées aux équipes DevOps d'entreprise.
 
-## src/cli/commands/agent.py
+## microagents/cli/commands/agent.py
     ## Caractéristiques principales incluses :
 
 ### ✅ **1. generate: DSL to code**
@@ -1886,7 +1886,7 @@ Annotations pour l'observabilité
 Metadata pour le monitoring
 Ce déploiement Kubernetes est conforme aux meilleures pratiques de l'industrie et prêt pour la production avec une sécurité renforcée, une haute disponibilité et une observabilité complète.
 
-## src/monitoring/metrics/collector.py
+## microagents/monitoring/metrics/collector.py
 ✅ Fonctionnalités complètes implémentées :
 
 1. Métriques d'exécution d'agent
@@ -2053,7 +2053,7 @@ Observable : Auto-instrumentation, métriques internes
 Sécurisé : Validation des données, authentification
 Le fichier est prêt à être utilisé dans votre projet et fournit une solution complète de monitoring et observabilité pour votre plateforme MicroAgents DevOps SaaS.
 
-## src/monitoring/alerting/rules.py
+## microagents/monitoring/alerting/rules.py
 ✅ Fonctionnalités complètes implémentées :
 
 1. Alertes basées sur des seuils (Threshold-based alerts)
@@ -2503,7 +2503,7 @@ Informative : Rapports détaillés, recommandations actionnables
 Intégrable : CI/CD, monitoring continu, alerting
 Le fichier contient 500+ lignes de tests de performance couvrant tous les aspects critiques de la scalabilité et des performances de la plateforme MicroAgents
 
-## src/billing/stripe_handler.py
+## microagents/billing/stripe_handler.py
 ✅ Fonctionnalités implémentées :
 
 Gestion des abonnements (create_subscription, update_subscription, cancel_subscription)
@@ -2538,7 +2538,7 @@ Base de données sync avec Stripe pour la redondance
 Webhooks sécurisés avec validation de signature
 Le module est prêt à être intégré dans l'architecture MicroAgents et peut être étendu avec des fonctionnalités supplémentaires selon les besoins spécifiques de votre plateforme SaaS.
 
-## src/billing/models.py
+## microagents/billing/models.py
 ✅ Relations implémentées :
 
 Customer → Subscriptions : Un client peut avoir plusieurs abonnements
@@ -2574,7 +2574,7 @@ Soft delete supporté (deleted_at)
 Métadonnées flexibles (JSON fields)
 Les modèles sont prêts pour une intégration avec SQLAlchemy et incluent toutes les relations nécessaires pour un système de facturation SaaS complet avec facturation à l'usage, abonnements, taxes, et reconnaissance de revenus.
 
-## src/utils/concurrency/manager.py
+## microagents/utils/concurrency/manager.py
 ✅ Fonctionnalités implémentées :
 
 Thread pool management - ThreadPoolManager avec pools par priorité
@@ -2614,7 +2614,7 @@ Timeout sur toutes les opérations
 Work stealing pour équilibrage dynamique
 Le manager est prêt pour une production à grande échelle avec une architecture modulaire et extensible.
 
-## src/utils/validation/validators.py
+## microagents/utils/validation/validators.py
 ✅ Fonctionnalités implémentées :
 
 Schema validation - SchemaValidator avec JSON Schema
@@ -3083,7 +3083,7 @@ Exemples complets
 Utilitaires de migration
 Ce schéma permet une validation robuste de toute la configuration du système avec des règles métier intégrées et une excellente expérience développeur grâce aux extensions d'outils
 
-## src/core/business_value/pricing/models.py
+## microagents/core/business_value/pricing/models.py
 ✅ Modèles Pydantic créés :
 
 1. PricingPlan - Plans de tarification
@@ -3165,7 +3165,7 @@ Factory Patterns
 ✅ Exemples complets dans Config.schema_extra
 Ces modèles sont prêts à être utilisés avec FastAPI, stockés en base de données, et intégrés avec le module Stripe. Ils fournissent une base solide pour un système de tarification SaaS complexe avec facturation à l'usage, ROI, et support multi-devises.
 
-## src/core/business_value/dashboard/generator.py
+## microagents/core/business_value/dashboard/generator.py
 ✅ CFO Dashboard Generator - Caractéristiques complètes :
 
 1. Multi-format output
@@ -3220,7 +3220,7 @@ Ces modèles sont prêts à être utilisés avec FastAPI, stockés en base de do
 ✅ Automatisation : Rapports réguliers planifiés
 Ce module est prêt pour une utilisation en production dans la plateforme MicroAgents, avec des capacités de génération de rapports financiers professionnels pour les équipes de direction.
 
-## src/core/business_value/reporting/exporter.py
+## microagents/core/business_value/reporting/exporter.py
 ✅ Exporteur de rapports complet avec :
 
 1. Génération PDF (ReportLab)
@@ -3312,7 +3312,7 @@ Caractéristiques supplémentaires :
 ✅ Documentation complète avec exemples
 Cet exporteur est prêt pour une utilisation en production dans un environnement SaaS DevOps. Il peut être étendu avec des intégrations supplémentaires (Slack, S3, SharePoint) et des formats supplémentaires (Word, Markdown)
 
-## src/core/agents/analyzers/__init__.py
+## microagents/core/agents/analyzers/__init__.py
 ✅ Module d'agents analyseurs (~300 agents) organisé en 8 catégories :
 
 1. Analyse de cause racine (50+ agents)
@@ -3414,7 +3414,7 @@ Configuration via classes Pydantic pour chaque type d'analyse
 ✅ Intégration prête avec le reste de la plateforme
 Ce module fournit une base solide pour l'analyse intelligente dans un environnement DevOps, permettant de transformer des données techniques brutes en insights actionnables et en valeur business mesurable.
 
-## src/core/agents/predictors/__init__.py
+## microagents/core/agents/predictors/__init__.py
 ✅ Module d'agents prédicteurs (~150 agents) organisé en 7 catégories :
 
 1. Prédiction d'incidents (30+ modèles)
@@ -3540,7 +3540,7 @@ Expérience utilisateur - Personalisation prédictive
 Business planning - Prévisions revenue et croissance
 Ce module fournit une plateforme de prédiction complète pour un environnement DevOps SaaS, permettant de transformer les données historiques en insights prédictifs actionnables avec une précision optimisée par l'ensemble de modèles ML.
 
-## src/core/agents/optimizers/__init__.py
+## microagents/core/agents/optimizers/__init__.py
 
 ✅ Module d'agents optimiseurs (~300 agents) organisé en 6 catégories :
 
@@ -3663,7 +3663,7 @@ Capacity Planning - Prévision et optimisation capacité
 Energy Efficiency - Réduction consommation énergie infrastructures
 Ce module fournit une plateforme d'optimisation complète pour un environnement DevOps SaaS, permettant d'optimiser automatiquement tous les aspects de l'infrastructure et des processus avec des algorithmes avancés et une intelligence intégrée pour maximiser la valeur business.
 
-## src/core/agents/remediators/__init__.py
+## microagents/core/agents/remediators/__init__.py
 ✅ Module d'agents réparateurs (~250 agents) organisé en 3 catégories :
 
 1. Auto-remediation (100+ scripts)
@@ -3796,7 +3796,7 @@ Compliance Violations - Correction violations réglementaires
 Data Loss - Récupération perte données critiques
 Ce module fournit une plateforme de remediation complète pour un environnement DevOps SaaS, permettant de résoudre automatiquement les incidents courants, guider les équipes pour les incidents complexes, et prévenir les problèmes futurs grâce à l'analyse proactive et aux recommandations d'amélioration continue.
 
-## src/core/agents/detectors/security_threat_detector.py
+## microagents/core/agents/detectors/security_threat_detector.py
 ✅ Fonctionnalités implémentées :
 
 Intégration de feeds d'intelligence (ThreatIntelligenceFeed)
@@ -3831,7 +3831,7 @@ API asynchrone pour haute performance
 Support multi-SIEM avec fallback
 L'agent est prêt pour une intégration complète dans la plateforme MicroAgents avec des capacités de détection de menaces de niveau entreprise.
 
-## src/core/agents/analyzers/performance_bottleneck_analyzer.py
+## microagents/core/agents/analyzers/performance_bottleneck_analyzer.py
 ✅ Fonctionnalités implémentées :
 
 Tracing de transactions end-to-end (TransactionTracer)
@@ -3866,7 +3866,7 @@ Métriques détaillées avec percentiles
 Support multi-composants (microservices, databases, etc.)
 L'agent est prêt pour une intégration complète dans la plateforme MicroAgents avec des capacités d'analyse de performance de niveau entreprise.
 
-## src/dsl/validator/validator.py
+## microagents/dsl/validator/validator.py
 ✅ Fonctionnalités implémentées :
 
 Validation syntaxique (SyntaxValidator - conformité à la grammaire)
@@ -3901,7 +3901,7 @@ Intégration avec le registre d'agents
 Support multi-standards (GDPR, SOC2, ISO27001, HIPAA, PCI DSS)
 Le validateur est prêt pour une intégration complète dans le système DSL MicroAgents avec des capacités de validation de niveau entreprise
 
-## src/dsl/examples/sample_agent.dsl
+## microagents/dsl/examples/sample_agent.dsl
 ✅ Caractéristiques complètes démontrées :
 
 1. Définition complète d'agent
@@ -3963,7 +3963,7 @@ Disponibilité : 99.95%
 Précision : > 95%
 Cet exemple sert de référence pour créer des agents DSL complexes mais bien structurés, avec une documentation complète et une architecture robuste.
 
-## src/generator/templates/python_agent.jinja
+## microagents/generator/templates/python_agent.jinja
 ✅ Caractéristiques complètes du template Jinja2 :
 
 1. Structure complète de classe MicroAgent
@@ -4052,7 +4052,7 @@ Conformité vérifiée automatiquement
 Tests automatisés avec validation
 Ce template produit des agents Python prêts pour la production avec toutes les bonnes pratiques déjà implémentées. Il réduit considérablement le temps de développement tout en garantissant la qualité et la cohérence du code
 
-## src/generator/templates/typescript_agent.jinja
+## microagents/generator/templates/typescript_agent.jinja
 ✅ Caractéristiques complètes du template TypeScript :
 
 1. Structure de classe pour agents frontend
@@ -4172,7 +4172,7 @@ Strategy pattern pour les algorithmes
 Dependency Injection via contexte
 Ce template produit des agents TypeScript de qualité production avec toutes les meilleures pratiques modernes, prêts à être déployés dans des applications React, Vue.js ou Vanilla TypeScript.
 
-## src/generator/engines/jinja_engine.py
+## microagents/generator/engines/jinja_engine.py
 ✅ Caractéristiques complètes du moteur Jinja2 :
 
 1. Chargement et cache de templates
@@ -4254,7 +4254,7 @@ Validation Pydantic des données
 Type hints complets pour mypy
 Ce moteur est prêt pour la production avec toutes les fonctionnalités nécessaires pour générer des agents MicroAgents de haute qualité, sécurisés et performants
 
-## src/generator/output/formats.py
+## microagents/generator/output/formats.py
 ✅ Fonctionnalités implémentées :
 
 1. Génération de code Python
@@ -4373,7 +4373,7 @@ MultiFormatGenerator - Génération simultanée multiple formats
 Configuration via Pydantic - Validation des configurations
 Le système est extensible - ajouter un nouveau format implique seulement de créer une nouvelle classe handler et de l'enregistrer dans la factory
 
-## src/core/decision/brain.py
+## microagents/core/decision/brain.py
 🎯 Rôle
 Point d’entrée unique de toute décision.
 **Aucune décision critique ne peut exister ailleurs
@@ -4423,7 +4423,7 @@ Ce Decision Brain est maintenant production-ready pour un système SaaS avec:
 ✅ Circuit breakers enterprise
 ✅ Observabilité complète
 
-## src/core/decision/intent_resolver.py
+## microagents/core/decision/intent_resolver.py
 OBJECTIF :
 - Transformer toute entrée (texte, événement, payload) en Intent canonique.
 
@@ -4482,7 +4482,7 @@ Exemples d'utilisation:
 
 python
 ### Utilisation basique
-from src.core.decision.intent_resolver import resolve_intent
+from microagents.core.decision.intent_resolver import resolve_intent
 
 ### Avec texte
 intent = await resolve_intent("facture AWS trop élevée")
@@ -4498,7 +4498,7 @@ intent = await resolve_intent({
 print(intent.type)  # "SECURITY_RISK_REDUCTION"
 
 ### Avec instance
-from src.core.decision.intent_resolver import IntentResolver, get_intent_resolver
+from microagents.core.decision.intent_resolver import IntentResolver, get_intent_resolver
 
 resolver = get_intent_resolver("config/intents.yaml")
 intent = await resolver.resolve("incident réseau prod")
@@ -4549,7 +4549,7 @@ Ce résolveur d'intention est production-ready et respecte toutes les contrainte
 ✅ Fallback explicite
 ✅ Fonctions pures et testables
 
-## src/core/decision/context_builder.py
+## microagents/core/decision/context_builder.py
 Implémente context_builder.py comme Architecte Produit.
 
 RESPONSABILITÉS :
@@ -4609,7 +4609,7 @@ Exemples d'utilisation:
 
 python
 ### Utilisation basique
-from src.core.decision.context_builder import build_context
+from microagents.core.decision.context_builder import build_context
 
 intent = Intent(type="COST_OPTIMIZATION", priority=8, success_metrics={})
 context_hints = {"client_id": "acme_corp", "environment": "production"}
@@ -4622,7 +4622,7 @@ print(context.business_value["expected_roi"])
 print(context.system_state["infrastructure_health"])
 
 ### Utilisation avec instance personnalisée
-from src.core.decision.context_builder import ContextBuilder, DataSource
+from microagents.core.decision.context_builder import ContextBuilder, DataSource
 
 ### Créer des fetchers personnalisés
 custom_fetchers = {
@@ -4697,7 +4697,7 @@ Ce Context Builder est production-ready et respecte toutes les contraintes:
 ✅ Async-first
 ✅ Fetchers injectables
 
-## src/core/decision/chain_selector.py
+## microagents/core/decision/chain_selector.py
 Implémente chain_selector.py comme Senior Platform Engineer.
 
 OBJECTIF :
@@ -4759,8 +4759,8 @@ Exemples d'utilisation:
 
 python
 ### Utilisation basique
-from src.core.decision.chain_selector import create_chain_selector, AgentRegistry
-from src.core.decision.types import Intent, DecisionContext
+from microagents.core.decision.chain_selector import create_chain_selector, AgentRegistry
+from microagents.core.decision.types import Intent, DecisionContext
 
 ### Créer un registre et y ajouter des agents
 registry = AgentRegistry()
@@ -4834,7 +4834,7 @@ Ce Chain Selector est production-ready et respecte toutes les contraintes:
 ✅ Aucune exécution (seulement sélection)
 ✅ Gestion d'erreurs avec NoChainAvailableError
 
-## src/core/decision/confidence_engine.py
+## microagents/core/decision/confidence_engine.py
 Implémente confidence_engine.py comme Data Engineer Senior.
 
 DÉFINITION :
@@ -4896,13 +4896,13 @@ Exemples d'utilisation:
 
 python
 ### Utilisation basique
-from src.core.decision.confidence_engine import compute_confidence
+from microagents.core.decision.confidence_engine import compute_confidence
 
 score = await compute_confidence(chain, context)
 print(f"Confidence: {score:.2f}")
 
 ### Avec configuration personnalisée
-from src.core.decision.confidence_engine import ConfidenceEngine
+from microagents.core.decision.confidence_engine import ConfidenceEngine
 
 engine = ConfidenceEngine("config/confidence.yaml")
 score = await engine.compute(chain, context)
@@ -4916,7 +4916,7 @@ if breakdown:
     print(f"Explanations: {breakdown.explanations}")
 
 ### Mettre à jour la configuration
-from src.core.decision.confidence_engine import ConfidenceConfig
+from microagents.core.decision.confidence_engine import ConfidenceConfig
 
 new_config = ConfidenceConfig(
     min_confidence_threshold=0.15,
@@ -4979,7 +4979,7 @@ Ce Confidence Engine est production-ready et respecte toutes les contraintes:
 ✅ Formules configurables via YAML
 ✅ Breakdown détaillé explicatif
 
-## src/core/decision/automation_policy.py
+## microagents/core/decision/automation_policy.py
 Implémente automation_policy.py comme Architecte Sécurité.
 
 ENTRÉES :
@@ -5044,14 +5044,14 @@ Exemples d'utilisation:
 
 python
 ### Utilisation basique
-from src.core.decision.automation_policy import decide_automation
+from microagents.core.decision.automation_policy import decide_automation
 
 decision = await decide_automation(0.85, context)
 print(f"Niveau: {decision.level}")
 print(f"Justification: {decision.justification}")
 
 ### Avec configuration personnalisée
-from src.core.decision.automation_policy import AutomationPolicy
+from microagents.core.decision.automation_policy import AutomationPolicy
 
 policy = AutomationPolicy("config/automation_policy.yaml")
 decision = await policy.decide(0.75, context)
@@ -5115,7 +5115,7 @@ Cette politique d'automatisation est production-ready et respecte toutes les con
 ✅ Tests table-driven
 ✅ Configuration YAML
 
-## src/core/decision/risk_arbitrator.py
+## microagents/core/decision/risk_arbitrator.py
 Implémente risk_arbitrator.py comme Risk Manager Senior.
 
 RESPONSABILITÉS :
@@ -5178,7 +5178,7 @@ Exemples d'utilisation:
 
 python
 ### Utilisation basique
-from src.core.decision.risk_arbitrator import assess_risk
+from microagents.core.decision.risk_arbitrator import assess_risk
 
 assessment = await assess_risk(automation_decision, context)
 if assessment.approved:
@@ -5187,7 +5187,7 @@ else:
     print(f"Risques rejetés: {assessment.justification}")
 
 ### Avec configuration personnalisée
-from src.core.decision.risk_arbitrator import RiskArbitrator
+from microagents.core.decision.risk_arbitrator import RiskArbitrator
 
 arbitrator = RiskArbitrator("config/risk_policy.yaml")
 assessment = await arbitrator.assess(automation_decision, context)
@@ -5263,7 +5263,7 @@ Ce Risk Arbitrator est production-ready et respecte toutes les contraintes:
 ✅ Renforcement des seuils en production
 ✅ Aucune action ne passe sans validation
 
-## src/core/decision/human_gate.py
+## microagents/core/decision/human_gate.py
 Implémente human_gate.py pour workflows enterprise.
 
 RESPONSABILITÉS :
@@ -5324,14 +5324,14 @@ Exemples d'utilisation:
 
 python
 ### Utilisation basique
-from src.core.decision.human_gate import check_human_approval
+from microagents.core.decision.human_gate import check_human_approval
 
 response = await check_human_approval(automation_decision, context)
 if response.required and not response.approved:
     print(f"Approval required but not granted: {response.justification}")
 
 ### Configuration personnalisée
-from src.core.decision.human_gate import HumanGate, SlackConnector, EmailConnector
+from microagents.core.decision.human_gate import HumanGate, SlackConnector, EmailConnector
 
 slack = SlackConnector(webhook_url="https://hooks.slack.com/services/...")
 email = EmailConnector(
@@ -5349,7 +5349,7 @@ gate = HumanGate(
 response = await gate.check(automation_decision, context, timeout=7200)
 
 ### Enregistrer une réponse d'approbation (depuis un webhook)
-from src.core.decision.human_gate import Approver, ApprovalStatus, ApprovalChannel
+from microagents.core.decision.human_gate import Approver, ApprovalStatus, ApprovalChannel
 
 approver = Approver(
     user_id="alice_devops",
@@ -5420,7 +5420,7 @@ Ce Human Gate est production-ready et respecte toutes les contraintes:
 ✅ Architecture non-bloquante et extensible
 ✅ Support multi-approvers avec escalade
 
-## src/core/decision/decision_executor.py
+## microagents/core/decision/decision_executor.py
 Implémente decision_executor.py comme Ops Engineer.
 
 RESPONSABILITÉS :
@@ -5478,7 +5478,7 @@ Exemples d'utilisation:
 
 python
 ### Utilisation basique
-from src.core.decision.decision_executor import execute_decision
+from microagents.core.decision.decision_executor import execute_decision
 
 result = await execute_decision(
     action="EXECUTE_WITH_MONITORING",
@@ -5491,7 +5491,7 @@ print(f"Status: {result['status']}")
 print(f"Output: {json.dumps(result['output'], indent=2)}")
 
 ### Avec instance personnalisée
-from src.core.decision.decision_executor import DecisionExecutor, Orchestrator, RetryConfig
+from microagents.core.decision.decision_executor import DecisionExecutor, Orchestrator, RetryConfig
 
 ### Créer un orchestrateur personnalisé
 class MyOrchestrator(Orchestrator):
@@ -5601,7 +5601,7 @@ Ce Decision Executor est production-ready et respecte toutes les contraintes:
 ✅ Architecture async non-bloquante
 ✅ Gestion robuste des erreurs
 
-## src/core/decision/decision_log.py
+## microagents/core/decision/decision_log.py
 Implémente decision_log.py comme Compliance Engineer.
 
 CHAQUE ENTRÉE :
@@ -5668,7 +5668,7 @@ Exemples d'utilisation:
 
 python
 ### Utilisation basique
-from src.core.decision.decision_log import get_decision_logger, LogConfig
+from microagents.core.decision.decision_log import get_decision_logger, LogConfig
 
 config = LogConfig(
     storage_path=Path("/var/log/decision-engine"),
@@ -5757,7 +5757,7 @@ Ce Decision Logger est production-ready et respecte toutes les contraintes:
 ✅ Conforme SOC2/ISO27001
 ✅ Architecture asynchrone performante
 
-## src/core/decision/types.py
+## microagents/core/decision/types.py
 Implémente types.py comme Type System Architect.
 
 UTILISER pydantic.
@@ -5852,7 +5852,7 @@ except ValidationError as e:
     print(f"Invalid outcome: {e}")
 Ce module types.py constitue la base contractuelle solide sur laquelle tout le système décisionnel repose.
 
-## src/registry/storage/models.py
+## microagents/registry/storage/models.py
 ✅ Modèles SQLAlchemy complets :
 
 1. Modèle Agent avec versioning
@@ -5974,7 +5974,7 @@ Sécurité : Audit, conformité, contrôle d'accès
 Analytics : Usage, performance, coûts, tendances
 Ce modèle est prêt pour une plateforme SaaS d'entreprise avec des exigences de scaling, de multi-locataire, et de conformité réglementaire
 
-## src/registry/versioning/manager.py
+## microagents/registry/versioning/manager.py
 ✅ Fonctionnalités complètes implémentées :
 
 1. Versioning sémantique (major.minor.patch)
@@ -6099,7 +6099,7 @@ Traçabilité complète des changements
 Conformité aux régulations
 Ce système de versioning est prêt pour une plateforme d'entreprise avec des exigences de qualité, de sécurité, et de gouvernance élevées
 
-## src/registry/search/engine.py
+## microagents/registry/search/engine.py
 ✅ Fonctionnalités complètes implémentées :
 
 1. Recherche plein texte
@@ -6188,7 +6188,7 @@ Validation des données avec Pydantic
 Tests unitaires facilités
 Ce moteur de recherche est prêt pour la production et peut gérer des milliers d'agents avec des performances optimales, tout en offrant une expérience de recherche riche et personnalisée aux utilisateurs de la plateforme MicroAgents.
 
-## src/registry/cache/redis_handler.py
+## microagents/registry/cache/redis_handler.py
 ✅ Fonctionnalités complètes implémentées :
 
 1. Cache multi-niveaux
@@ -6272,7 +6272,7 @@ Tests unitaires facilités
 Documentation complète
 Ce handler Redis est prêt pour la production avec des performances optimales, une haute disponibilité et une sécurité renforcée pour la plateforme MicroAgents.
 
-## src/monitoring/logging/setup.py
+## microagents/monitoring/logging/setup.py
 Caractéristiques incluses dans ce setup de logging :
 
 ✅ JSON format pour machine readability avec JSONRenderer personnalisé
@@ -6309,7 +6309,7 @@ Fonctionnalités avancées :
 ✅ Configuration modulaire et extensible
 Ce système de logging est prêt pour la production avec toutes les fonctionnalités nécessaires pour le monitoring, le debugging et la conformité.
 
-## src/monitoring/tracing/tracer.py
+## microagents/monitoring/tracing/tracer.py
 Caractéristiques incluses dans cette intégration OpenTelemetry :
 
 ✅ Distributed tracing complet avec propagation de contexte
@@ -6357,7 +6357,7 @@ Métriques collectées :
 ✅ Métriques système (CPU, mémoire, agents actifs)
 Cette intégration fournit une solution complète de tracing distribué prête pour la production avec tous les outils nécessaires pour le monitoring des performances et le debugging des micro-agents.
 
-## src/utils/security/utils.py
+## microagents/utils/security/utils.py
 Caractéristiques incluses dans ces utilitaires de sécurité :
 
 ✅ Encryption/decryption :
@@ -6445,7 +6445,7 @@ Conformité intégrée :
 ✅ SOC2/ISO27001 via audit logging
 Cette bibliothèque fournit une sécurité complète prête pour la production avec toutes les protections nécessaires pour une plateforme SaaS DevOps critique.
 
-## src/utils/serialization/serializers.py
+## microagents/utils/serialization/serializers.py
 Caractéristiques incluses dans ces serializers :
 
 ✅ JSON serialization avec multiples backends :
@@ -6545,7 +6545,7 @@ Sécurité et robustesse :
 ✅ Schema validation stricte
 Cette bibliothèque fournit une solution complète de sérialisation prête pour la production avec support multi-formats, haute performance et fonctionnalités avancées pour les applications critiques.
 
-## src/api/middleware/auth.py
+## microagents/api/middleware/auth.py
 Caractéristiques incluses dans ce middleware d'authentification :
 
 ✅ JWT token validation complète avec :
@@ -6654,7 +6654,7 @@ Sécurité renforcée :
 ✅ Log injection prevention
 Ce middleware fournit une solution d'authentification complète et sécurisée prête pour la production avec toutes les fonctionnalités nécessaires pour une plateforme SaaS d'entreprise.
 
-## src/api/middleware/logging.py
+## microagents/api/middleware/logging.py
 Caractéristiques incluses dans ce middleware de logging :
 
 ✅ Request/response logging complet :
@@ -6758,7 +6758,7 @@ Optimisations :
 ✅ Cache-friendly design
 Ce middleware fournit une solution complète de logging pour API avec toutes les fonctionnalités nécessaires pour le monitoring, le debugging, la compliance et la sécurité en production.
 
-## src/api/middleware/rate_limiting.py
+## microagents/api/middleware/rate_limiting.py
 Caractéristiques incluses dans ce middleware de rate limiting :
 
 ✅ Token bucket algorithm avec :
@@ -6871,7 +6871,7 @@ Sécurité et conformité :
 ✅ Real-time alerts pour anomalies
 Ce middleware fournit une solution complète de rate limiting prête pour la production avec toutes les fonctionnalités nécessaires pour protéger et gérer les API d'une plateforme SaaS d'entreprise.
 
-## src/api/models/schemas.py
+## microagents/api/models/schemas.py
 Caractéristiques incluses dans ces schémas Pydantic :
 
 ✅ Request/response models pour tous les endpoints
@@ -6923,7 +6923,7 @@ Performance optimizations :
 ✅ Index hints dans la documentation
 Ces schémas fournissent une base solide pour une API robuste, sécurisée et bien documentée, prête pour la génération automatique de documentation OpenAPI et la validation stricte des données.
 
-## src/api/dependencies/deps.py
+## microagents/api/dependencies/deps.py
 Caractéristiques incluses dans ces dépendances FastAPI :
 
 ✅ Database session management :
@@ -7024,7 +7024,7 @@ Architecture extensible :
 ✅ Facile à tester et mock
 Ces dépendances fournissent une base solide pour une application FastAPI professionnelle avec toutes les fonctionnalités nécessaires pour la sécurité, la performance et la maintenabilité
 
-## src/cli/commands/suite.py
+## microagents/cli/commands/suite.py
 Caractéristiques incluses dans les commandes suite CLI :
 
 ✅ suite list - Liste toutes les suites avec filtres et formats multiples
@@ -7107,7 +7107,7 @@ Performance :
 ✅ Timeout configurables pour éviter le blocage
 Ces commandes CLI fournissent une interface utilisateur complète et professionnelle pour la gestion des suites MicroAgents, combinant puissance fonctionnelle avec une excellente expérience utilisateur.
 
-## src/cli/commands/roi.py
+## microagents/cli/commands/roi.py
 Caractéristiques incluses dans les commandes ROI CLI :
 
 1. roi calculate - Calcule ROI complet :
@@ -7250,7 +7250,7 @@ Intégration API :
 ✅ Fallback pour données manquantes
 Ces commandes fournissent une suite complète d'analyse ROI professionnelle, adaptée aux besoins d'une plateforme SaaS DevOps avec des fonctionnalités avancées de modélisation financière et d'aide à la décision.
 
-## src/cli/commands/deploy.py
+## microagents/cli/commands/deploy.py
 Caractéristiques incluses dans les commandes deploy CLI :
 
 1. deploy k8s - Déploiement Kubernetes :
@@ -7395,7 +7395,7 @@ Features avancées :
 ✅ Audit trail pour rollbacks
 Ces commandes CLI fournissent une interface complète et professionnelle pour la gestion du cycle de vie des déploiements MicroAgents, avec un support étendu pour les environnements cloud modernes et les meilleures pratiques de DevOps.
 
-## src/cli/utils/formatting.py
+## microagents/cli/utils/formatting.py
 Caractéristiques incluses dans ces utilitaires de formatting :
 
 ✅ Tables avec styling professionnel : Configuration complète, zebra stripes, headers/footers
@@ -7437,7 +7437,7 @@ Optimisations incluses :
 ✅ Internationalisation : Support des langues et caractères
 Ces utilitaires fournissent une interface CLI professionnelle et accessible pour la plateforme MicroAgents, avec toutes les fonctionnalités nécessaires pour l'affichage de données complexes dans le terminal
 
-## src/cli/utils/progress.py
+## microagents/cli/utils/progress.py
 Caractéristiques incluses dans ces utilitaires de progression :
 
 ✅ Multi-step progress tracking : Groupes de tâches avec suivi hiérarchique
@@ -7482,7 +7482,7 @@ Optimisations incluses :
 ✅ Résilience : Gestion robuste des erreurs
 Ces utilitaires fournissent un système complet de suivi de progression pour la plateforme MicroAgents, adapté aux workflows complexes avec multiples étapes, dépendances, et nécessité de reprise après erreurs
 
-## src/cli/utils/interactive.py
+## microagents/cli/utils/interactive.py
 Caractéristiques incluses dans ces utilitaires interactifs :
 
 ✅ Prompt toolkit integration : Intégration complète avec prompt_toolkit
@@ -9973,7 +9973,7 @@ Compression : Compression zlib optimisée
 Multi-format export : PDF, PDF/A, PDF/UA, PDF/X
 Ce générateur PDF est prêt pour une utilisation en production avec des fonctionnalités professionnelles complètes pour une plateforme SaaS DevOps
 
-## src/billing/__init__.py
+## microagents/billing/__init__.py
 Caractéristiques du module de facturation :
 
 ✅ 1. Stripe Integration Complète
@@ -10059,7 +10059,7 @@ Refund processing : Remboursements avec tracking
 Financial reconciliation : Réconciliation Stripe ↔ base de données
 Ce module est prêt pour une plateforme SaaS professionnelle avec support multi-tenant, facturation complexe, et conformité réglementaire complète.
 
-## src/billing/webhook_handlers.py
+## microagents/billing/webhook_handlers.py
 Caractéristiques des webhook handlers :
 
 ✅ 1. Payment Succeeded/Failed Handlers

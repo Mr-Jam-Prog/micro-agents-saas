@@ -491,7 +491,7 @@ jobs:
         run: |
           # Setup test database
           uv run alembic upgrade head
-          
+
           # Run E2E tests
           uv run pytest tests/e2e/ \
             --junitxml=junit-e2e.xml \
@@ -554,10 +554,10 @@ jobs:
           # Start API in background
           nohup uvicorn src.api.main:app --host 0.0.0.0 --port 8000 &
           API_PID=$!
-          
+
           # Wait for API to start
           sleep 10
-          
+
           # Run load test
           locust -f tests/load/locustfile.py \
             --headless \

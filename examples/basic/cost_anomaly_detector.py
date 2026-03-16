@@ -29,34 +29,34 @@ rule "Rule Name":
     description: "Description of what this rule detects"
     severity: HIGH | MEDIUM | LOW
     category: COST | SECURITY | PERFORMANCE | COMPLIANCE
-    
+
     # Data Sources
     sources:
         - aws_cost_explorer
         - azure_cost_management
         - gcp_billing_reports
         - custom_metrics
-    
+
     # Detection Logic
     detection:
         type: STATISTICAL | ML | THRESHOLD | PATTERN
         algorithm: Z_SCORE | IQR | DBSCAN | ISOLATION_FOREST
         window: 7d | 30d | 90d
         frequency: HOURLY | DAILY | WEEKLY
-        
+
         # Threshold Configuration
         threshold:
             upper: 2.5  # Standard deviations
             lower: 2.5
             percentage_change: 50  # Percentage increase
-        
+
         # ML Configuration
         ml_config:
             model_type: isolation_forest
             contamination: 0.1
             features: ["daily_cost", "cost_change_rate", "service_ratio"]
             training_window: 90d
-        
+
         # Pattern Configuration
         patterns:
             - type: SEASONAL
@@ -65,7 +65,7 @@ rule "Rule Name":
               duration: 1h | 4h | 24h
             - type: STEP_CHANGE
               sensitivity: HIGH
-    
+
     # Filter Conditions
     filters:
         - field: service
@@ -77,7 +77,7 @@ rule "Rule Name":
         - field: cost
           operator: GT
           value: 1000
-        
+
         # Time-based filters
         - field: hour_of_day
           operator: BETWEEN
@@ -85,7 +85,7 @@ rule "Rule Name":
         - field: is_weekend
           operator: EQ
           value: false
-    
+
     # Alert Configuration
     alerts:
         channels:
@@ -93,103 +93,103 @@ rule "Rule Name":
             - email: "finance-team@company.com"
             - pagerduty: "cost-ops"
             - webhook: "https://hooks.slack.com/services/..."
-        
+
         # Alert Throttling
         throttle:
             max_alerts_per_hour: 5
             cooldown_period: 1h
-        
+
         # Alert Templates
         template:
             title: "🚨 Cost Anomaly Detected: {service} in {region}"
             message: |
                 **Cost Anomaly Detected**
-                
+
                 **Service:** {service}
                 **Region:** {region}
                 **Cost:** ${cost:.2f} (Expected: ${expected_cost:.2f})
                 **Deviation:** {deviation_percent:.1f}%
                 **Time:** {timestamp}
-                
+
                 **Recommendation:**
                 {recommendation}
-    
+
     # Actions
     actions:
         on_detect:
             - type: NOTIFY
               channel: alerts.channels
               template: alerts.template
-            
+
             - type: CREATE_JIRA
               project: COST
               issue_type: Bug
               assignee: cost-optimization-team
-            
+
             - type: EXECUTE_WORKFLOW
               workflow_id: "cost-optimization-workflow"
               parameters:
                   anomaly_id: "{anomaly_id}"
                   service: "{service}"
-            
+
             - type: SCALE_DOWN
               service: "{service}"
               region: "{region}"
               percentage: 50
-        
+
         on_resolve:
             - type: NOTIFY
               channel: alerts.channels
               template: "✅ Anomaly resolved: {anomaly_id}"
-            
+
             - type: UPDATE_JIRA
               status: Resolved
               comment: "Anomaly auto-resolved"
-    
+
     # Cost Impact Calculation
     impact:
         calculation_method: ACTUAL_VS_EXPECTED | PROJECTED_ANNUAL
         currency: USD
         business_units: ["engineering", "product", "marketing"]
-        
+
         # ROI Tracking
         roi_tracking:
             enabled: true
             savings_target: 10000  # USD
             tracking_period: 30d
-    
+
     # Compliance Requirements
     compliance:
         standards:
             - SOC2
             - ISO27001
             - GDPR
-        
+
         data_retention:
             raw_data: 90d
             processed_data: 365d
             audit_logs: 730d
-        
+
         # Audit Configuration
         audit:
             enabled: true
             log_all_decisions: true
             store_evidence: true
-    
+
     # Performance Settings
     performance:
         timeout: 300  # seconds
         max_memory: 512  # MB
         priority: HIGH
         schedule: "0 */2 * * *"  # Every 2 hours
-    
+
     # Testing
     testing:
         unit_tests: required
         integration_tests: required
         performance_tests: required
         security_tests: required
-        
+
         # Test Data
         test_data:
             normal_pattern: "data/normal_costs.csv"
@@ -263,7 +263,7 @@ class AnomalyDetectionResult:
     detected_at: datetime
     rule_name: str
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "is_anomaly": self.is_anomaly,
@@ -280,7 +280,7 @@ class AnomalyDetectionResult:
 
 class StatisticalDetector:
     """Statistical anomaly detection methods."""
-    
+
     def __init__(self, window_size: int = 30, z_score_threshold: float = 2.5):
         self.window_size = window_size
         self.z_score_threshold = z_score_threshold
@@ -299,11 +299,11 @@ class StatisticalDetector:
                 detected_at=datetime.utcnow(),
                 rule_name="z_score_detector"
             )
-        
+
         recent_data = data[-self.window_size:]
         current_value = recent_data[-1]
         historical_data = recent_data[:-1]
-        
+
         mean = np.mean(historical_data)
         std = np.std(historical_data)
         
@@ -311,7 +311,7 @@ class StatisticalDetector:
             z_score = 0
         else:
             z_score = abs((current_value - mean) / std)
-        
+
         is_anomaly = z_score > self.z_score_threshold
         deviation = ((current_value - mean) / mean * 100) if mean > 0 else 0
         
@@ -332,7 +332,7 @@ class StatisticalDetector:
                 "window_size": self.window_size
             }
         )
-    
+
     def detect_using_iqr(self, data: List[float]) -> AnomalyDetectionResult:
         """Detect anomalies using Interquartile Range method."""
         if len(data) < self.window_size:
@@ -347,26 +347,26 @@ class StatisticalDetector:
                 detected_at=datetime.utcnow(),
                 rule_name="iqr_detector"
             )
-        
+
         recent_data = data[-self.window_size:]
         current_value = recent_data[-1]
-        
+
         q1 = np.percentile(recent_data, 25)
         q3 = np.percentile(recent_data, 75)
         iqr = q3 - q1
-        
+
         lower_bound = q1 - 1.5 * iqr
         upper_bound = q3 + 1.5 * iqr
-        
+
         is_anomaly = current_value < lower_bound or current_value > upper_bound
-        
+
         return AnomalyDetectionResult(
             is_anomaly=is_anomaly,
             confidence=1.0 if is_anomaly else 0.0,
             severity=Severity.HIGH if is_anomaly else Severity.LOW,
             actual_value=current_value,
             expected_value=np.median(recent_data),
-            deviation_percent=((current_value - np.median(recent_data)) / np.median(recent_data) * 100) 
+            deviation_percent=((current_value - np.median(recent_data)) / np.median(recent_data) * 100)
             if np.median(recent_data) > 0 else 0,
             anomaly_score=abs(current_value - np.median(recent_data)) / iqr if iqr > 0 else 0,
             detected_at=datetime.utcnow(),
@@ -379,7 +379,7 @@ class StatisticalDetector:
                 "upper_bound": upper_bound
             }
         )
-    
+
     def _calculate_severity(self, z_score: float, deviation_percent: float) -> Severity:
         """Calculate anomaly severity based on z-score and deviation."""
         if z_score > 4 or abs(deviation_percent) > 200:
@@ -393,7 +393,7 @@ class StatisticalDetector:
 
 class MLDetector:
     """Machine Learning based anomaly detection."""
-    
+
     def __init__(self, contamination: float = 0.1, n_estimators: int = 100):
         self.contamination = contamination
         self.n_estimators = n_estimators
@@ -403,27 +403,27 @@ class MLDetector:
             random_state=42
         )
         self.is_trained = False
-    
+
     def train(self, features: np.ndarray):
         """Train the ML model."""
         self.model.fit(features)
         self.is_trained = True
         logger.info(f"ML detector trained with {len(features)} samples")
-    
+
     def detect(self, features: np.ndarray) -> AnomalyDetectionResult:
         """Detect anomalies using trained ML model."""
         if not self.is_trained:
             raise ValueError("Model must be trained before detection")
-        
+
         if features.ndim == 1:
             features = features.reshape(1, -1)
-        
+
         anomaly_score = self.model.decision_function(features)[0]
         prediction = self.model.predict(features)[0]
-        
+
         is_anomaly = prediction == -1
         confidence = abs(anomaly_score)
-        
+
         return AnomalyDetectionResult(
             is_anomaly=is_anomaly,
             confidence=confidence,
@@ -446,86 +446,86 @@ class CostAnomalyDetectorAgent(BaseAgent):
     Cost Anomaly Detector Agent.
     Detects anomalous cost patterns across cloud providers.
     """
-    
+
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
         self.agent_id = "cost-anomaly-detector"
         self.version = "1.0.0"
-        
+
         # Initialize detectors
         self.statistical_detector = StatisticalDetector(
             window_size=config.get('window_size', 30),
             z_score_threshold=config.get('z_score_threshold', 2.5)
         )
-        
+
         self.ml_detector = MLDetector(
             contamination=config.get('ml_contamination', 0.1),
             n_estimators=config.get('ml_n_estimators', 100)
         )
-        
+
         # Cloud clients
         self.aws_client = None
         self.azure_client = None
         self.gcp_client = None
-        
+
         # Metrics
         self.metrics_collector = MetricsCollector()
-        
+
         # State
         self.detection_history = []
         self.cost_data_cache = {}
-        
+
     async def initialize(self):
         """Initialize the agent."""
         await super().initialize()
-        
+
         # Initialize cloud clients based on configuration
         if self.config.get('aws_enabled', False):
             self.aws_client = boto3.client('ce', region_name='us-east-1')
-        
+
         if self.config.get('azure_enabled', False):
             # Azure client initialization
             pass
-        
+
         if self.config.get('gcp_enabled', False):
             # GCP client initialization
             pass
-        
+
         logger.info(f"CostAnomalyDetectorAgent initialized with config: {self.config}")
-    
+
     async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """
         Execute cost anomaly detection.
-        
+
         Args:
             context: Execution context containing parameters
-            
+
         Returns:
             Dictionary with detection results
         """
         try:
             logger.info("Starting cost anomaly detection")
-            
+
             # 1. Collect cost data
             cost_data = await self._collect_cost_data(context)
-            
+
             if not cost_data:
                 return {"success": False, "error": "No cost data collected"}
-            
+
             # 2. Apply filters
             filtered_data = self._apply_filters(cost_data, context.get('filters', []))
-            
+
             # 3. Detect anomalies
             anomalies = await self._detect_anomalies(filtered_data, context)
-            
+
             # 4. Process results
             results = await self._process_results(anomalies, context)
-            
+
             # 5. Update metrics
             self._update_metrics(results)
-            
+
             logger.info(f"Cost anomaly detection completed: {len(anomalies)} anomalies found")
-            
+
             return {
                 "success": True,
                 "anomalies_detected": len(anomalies),
@@ -536,7 +536,7 @@ class CostAnomalyDetectorAgent(BaseAgent):
                     "agent_version": self.version
                 }
             }
-            
+
         except Exception as e:
             logger.error(f"Error in cost anomaly detection: {e}")
             return {
@@ -545,41 +545,41 @@ class CostAnomalyDetectorAgent(BaseAgent):
                 "anomalies_detected": 0,
                 "results": []
             }
-    
+
     async def _collect_cost_data(self, context: Dict[str, Any]) -> List[CostDataPoint]:
         """Collect cost data from various sources."""
         data_points = []
-        
+
         # Time range for data collection
         end_time = datetime.utcnow()
         start_time = end_time - timedelta(days=context.get('lookback_days', 30))
-        
+
         # Collect from AWS Cost Explorer
         if self.aws_client and context.get('sources', {}).get('aws', True):
             aws_data = await self._collect_aws_cost_data(start_time, end_time, context)
             data_points.extend(aws_data)
-        
+
         # Collect from Azure Cost Management
         if self.azure_client and context.get('sources', {}).get('azure', False):
             azure_data = await self._collect_azure_cost_data(start_time, end_time, context)
             data_points.extend(azure_data)
-        
+
         # Collect from GCP Billing
         if self.gcp_client and context.get('sources', {}).get('gcp', False):
             gcp_data = await self._collect_gcp_cost_data(start_time, end_time, context)
             data_points.extend(gcp_data)
-        
+
         # Sort by timestamp
         data_points.sort(key=lambda x: x.timestamp)
-        
+
         return data_points
-    
-    async def _collect_aws_cost_data(self, start_time: datetime, 
+
+    async def _collect_aws_cost_data(self, start_time: datetime,
                                     end_time: datetime,
                                     context: Dict[str, Any]) -> List[CostDataPoint]:
         """Collect cost data from AWS Cost Explorer."""
         data_points = []
-        
+
         try:
             response = self.aws_client.get_cost_and_usage(
                 TimePeriod={
@@ -593,15 +593,15 @@ class CostAnomalyDetectorAgent(BaseAgent):
                     {'Type': 'DIMENSION', 'Key': 'REGION'}
                 ]
             )
-            
+
             for result in response.get('ResultsByTime', []):
                 timestamp = datetime.strptime(result['TimePeriod']['Start'], '%Y-%m-%d')
-                
+
                 for group in result.get('Groups', []):
                     service = group['Keys'][0]
                     region = group['Keys'][1]
                     cost = float(group['Metrics']['UnblendedCost']['Amount'])
-                    
+
                     data_points.append(CostDataPoint(
                         timestamp=timestamp,
                         service=service,
@@ -610,37 +610,37 @@ class CostAnomalyDetectorAgent(BaseAgent):
                         currency='USD',
                         tags={'source': 'aws', 'granularity': 'daily'}
                     ))
-            
+
         except Exception as e:
             logger.error(f"Failed to collect AWS cost data: {e}")
-        
+
         return data_points
-    
+
     async def _collect_azure_cost_data(self, start_time: datetime,
                                       end_time: datetime,
                                       context: Dict[str, Any]) -> List[CostDataPoint]:
         """Collect cost data from Azure Cost Management."""
         # Implementation for Azure
         return []
-    
+
     async def _collect_gcp_cost_data(self, start_time: datetime,
                                     end_time: datetime,
                                     context: Dict[str, Any]) -> List[CostDataPoint]:
         """Collect cost data from GCP Billing."""
         # Implementation for GCP
         return []
-    
-    def _apply_filters(self, data: List[CostDataPoint], 
+
+    def _apply_filters(self, data: List[CostDataPoint],
                       filters: List[Dict[str, Any]]) -> List[CostDataPoint]:
         """Apply filters to cost data."""
         filtered_data = data
-        
+
         for filter_def in filters:
             field = filter_def.get('field')
             operator = filter_def.get('operator')
             value = filter_def.get('value')
             values = filter_def.get('values', [])
-            
+
             if field == 'service':
                 if operator == 'IN':
                     filtered_data = [d for d in filtered_data if d.service in values]
@@ -648,13 +648,13 @@ class CostAnomalyDetectorAgent(BaseAgent):
                     filtered_data = [d for d in filtered_data if d.service not in values]
                 elif operator == 'EQ':
                     filtered_data = [d for d in filtered_data if d.service == value]
-            
+
             elif field == 'region':
                 if operator == 'IN':
                     filtered_data = [d for d in filtered_data if d.region in values]
                 elif operator == 'NOT_IN':
                     filtered_data = [d for d in filtered_data if d.region not in values]
-            
+
             elif field == 'cost':
                 if operator == 'GT':
                     filtered_data = [d for d in filtered_data if d.cost > value]
@@ -662,15 +662,15 @@ class CostAnomalyDetectorAgent(BaseAgent):
                     filtered_data = [d for d in filtered_data if d.cost < value]
                 elif operator == 'BETWEEN':
                     filtered_data = [d for d in filtered_data if values[0] <= d.cost <= values[1]]
-        
+
         return filtered_data
-    
+
     async def _detect_anomalies(self, data: List[CostDataPoint],
                                context: Dict[str, Any]) -> List[AnomalyDetectionResult]:
         """Detect anomalies in cost data."""
         anomalies = []
         detection_type = context.get('detection_type', 'statistical')
-        
+
         # Group data by service and region for analysis
         grouped_data = {}
         for point in data:
@@ -678,33 +678,33 @@ class CostAnomalyDetectorAgent(BaseAgent):
             if key not in grouped_data:
                 grouped_data[key] = []
             grouped_data[key].append(point)
-        
+
         # Analyze each group
         for key, points in grouped_data.items():
             service, region = key.split(':')
-            
+
             # Extract cost time series
             costs = [p.cost for p in points]
             timestamps = [p.timestamp for p in points]
-            
+
             if len(costs) < 7:  # Need minimum data points
                 continue
-            
+
             result = None
-            
+
             if detection_type == 'statistical':
                 # Use Z-score method
                 result = self.statistical_detector.detect_using_zscore(costs)
-                
+
             elif detection_type == 'iqr':
                 # Use IQR method
                 result = self.statistical_detector.detect_using_iqr(costs)
-                
+
             elif detection_type == 'ml':
                 # Prepare features for ML
                 features = self._prepare_ml_features(costs, timestamps)
                 result = self.ml_detector.detect(features)
-            
+
             if result and result.is_anomaly:
                 # Enrich result with context
                 result.metadata.update({
@@ -714,24 +714,24 @@ class CostAnomalyDetectorAgent(BaseAgent):
                     'detection_type': detection_type,
                     'time_series': costs[-10:]  # Last 10 data points
                 })
-                
+
                 # Calculate business impact
                 impact = self._calculate_business_impact(result, service, region)
                 result.metadata['business_impact'] = impact
-                
+
                 anomalies.append(result)
-        
+
         return anomalies
-    
-    def _prepare_ml_features(self, costs: List[float], 
+
+    def _prepare_ml_features(self, costs: List[float],
                             timestamps: List[datetime]) -> np.ndarray:
         """Prepare features for ML detection."""
         # Basic statistical features
         features = []
-        
+
         if len(costs) >= 7:
             recent_costs = costs[-7:]  # Last 7 days
-            
+
             # Statistical features
             features.extend([
                 np.mean(recent_costs),
@@ -740,23 +740,23 @@ class CostAnomalyDetectorAgent(BaseAgent):
                 np.max(recent_costs),
                 recent_costs[-1],  # Latest cost
                 recent_costs[-1] - recent_costs[-2] if len(recent_costs) >= 2 else 0,  # Daily change
-                (recent_costs[-1] - np.mean(recent_costs[:-1])) / np.mean(recent_costs[:-1]) 
+                (recent_costs[-1] - np.mean(recent_costs[:-1])) / np.mean(recent_costs[:-1])
                 if np.mean(recent_costs[:-1]) > 0 else 0  # Percent change
             ])
-        
+
         return np.array(features).reshape(1, -1)
-    
+
     def _calculate_business_impact(self, anomaly: AnomalyDetectionResult,
                                   service: str, region: str) -> Dict[str, Any]:
         """Calculate business impact of anomaly."""
         daily_excess = anomaly.actual_value - anomaly.expected_value
-        
+
         # Project annual impact
         annual_excess = daily_excess * 365
-        
+
         # Calculate potential savings
         potential_savings = min(annual_excess * 0.3, annual_excess)  # Assume 30% savings
-        
+
         return {
             'daily_excess_cost': daily_excess,
             'projected_annual_excess': annual_excess,
@@ -766,44 +766,44 @@ class CostAnomalyDetectorAgent(BaseAgent):
             'affected_region': region,
             'calculation_time': datetime.utcnow().isoformat()
         }
-    
+
     async def _process_results(self, anomalies: List[AnomalyDetectionResult],
                               context: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Process and format anomaly results."""
         processed_results = []
-        
+
         for anomaly in anomalies:
             result = anomaly.to_dict()
-            
+
             # Add recommendations
             result['recommendations'] = self._generate_recommendations(anomaly)
-            
+
             # Add alert configuration
             result['alert_config'] = {
                 'channels': context.get('alert_channels', ['slack', 'email']),
                 'severity_threshold': context.get('severity_threshold', 'medium'),
                 'throttle_enabled': context.get('throttle_enabled', True)
             }
-            
+
             # Store in history
             self.detection_history.append({
                 'timestamp': datetime.utcnow(),
                 'anomaly': result,
                 'context': context
             })
-            
+
             # Limit history size
             if len(self.detection_history) > 1000:
                 self.detection_history = self.detection_history[-1000:]
-            
+
             processed_results.append(result)
-        
+
         return processed_results
-    
+
     def _generate_recommendations(self, anomaly: AnomalyDetectionResult) -> List[Dict[str, Any]]:
         """Generate recommendations for addressing anomaly."""
         recommendations = []
-        
+
         # General recommendations
         recommendations.append({
             'type': 'investigate',
@@ -812,7 +812,7 @@ class CostAnomalyDetectorAgent(BaseAgent):
             'details': 'Check for recent deployments, configuration changes, or usage spikes',
             'estimated_effort': '1-2 hours'
         })
-        
+
         # Cost optimization recommendations
         if anomaly.actual_value > anomaly.expected_value:
             recommendations.append({
@@ -823,7 +823,7 @@ class CostAnomalyDetectorAgent(BaseAgent):
                 'estimated_savings': f"${anomaly.metadata.get('business_impact', {}).get('potential_savings', 0):.2f} annually",
                 'estimated_effort': '4-8 hours'
             })
-        
+
         # Monitoring recommendations
         recommendations.append({
             'type': 'monitoring',
@@ -832,38 +832,38 @@ class CostAnomalyDetectorAgent(BaseAgent):
             'details': 'Configure alerts for similar patterns in the future',
             'estimated_effort': '1 hour'
         })
-        
+
         return recommendations
-    
+
     def _update_metrics(self, results: List[Dict[str, Any]]):
         """Update metrics based on detection results."""
         anomalies_detected = len([r for r in results if r['is_anomaly']])
-        
+
         # Update Prometheus metrics
         self.metrics_collector.increment_counter(
             'cost_anomalies_detected_total',
             anomalies_detected,
             {'detector_version': self.version}
         )
-        
+
         # Update severity distribution
         severity_counts = {'low': 0, 'medium': 0, 'high': 0, 'critical': 0}
         for result in results:
             if result['is_anomaly']:
                 severity_counts[result['severity']] += 1
-        
+
         for severity, count in severity_counts.items():
             self.metrics_collector.set_gauge(
                 f'cost_anomalies_by_severity_{severity}',
                 count
             )
-    
+
     async def train_ml_model(self, training_data: List[CostDataPoint]):
         """Train the ML model with historical data."""
         try:
             # Prepare features
             features_list = []
-            
+
             # Group by service and region
             grouped_data = {}
             for point in training_data:
@@ -871,26 +871,26 @@ class CostAnomalyDetectorAgent(BaseAgent):
                 if key not in grouped_data:
                     grouped_data[key] = []
                 grouped_data[key].append(point)
-            
+
             for points in grouped_data.values():
                 if len(points) >= 7:
                     costs = [p.cost for p in points]
                     timestamps = [p.timestamp for p in points]
                     features = self._prepare_ml_features(costs, timestamps)
                     features_list.append(features.flatten())
-            
+
             if features_list:
                 features_array = np.array(features_list)
                 self.ml_detector.train(features_array)
                 logger.info(f"ML model trained with {len(features_array)} samples")
                 return True
-            
+
             return False
-            
+
         except Exception as e:
             logger.error(f"Failed to train ML model: {e}")
             return False
-    
+
     def get_detection_summary(self, days: int = 7) -> Dict[str, Any]:
         """Get summary of recent detections."""
         cutoff_time = datetime.utcnow() - timedelta(days=days)
@@ -898,13 +898,13 @@ class CostAnomalyDetectorAgent(BaseAgent):
             d for d in self.detection_history
             if d['timestamp'] > cutoff_time
         ]
-        
+
         total_anomalies = len(recent_detections)
         total_savings_opportunity = sum(
             d['anomaly']['metadata'].get('business_impact', {}).get('potential_savings', 0)
             for d in recent_detections
         )
-        
+
         # Group by service
         service_breakdown = {}
         for detection in recent_detections:
@@ -912,7 +912,7 @@ class CostAnomalyDetectorAgent(BaseAgent):
             if service not in service_breakdown:
                 service_breakdown[service] = 0
             service_breakdown[service] += 1
-        
+
         return {
             'period_days': days,
             'total_anomalies': total_anomalies,
@@ -943,14 +943,14 @@ agent:
   version: "1.0.0"
   enabled: true
   schedule: "0 */2 * * *"  # Run every 2 hours
-  
+
   # Resource Limits
   resources:
     memory_limit: "512Mi"
     cpu_limit: "500m"
     memory_request: "256Mi"
     cpu_request: "200m"
-  
+
   # Health Checks
   health_check:
     endpoint: "/health"
@@ -958,13 +958,13 @@ agent:
     period: 60
     timeout: 10
     failure_threshold: 3
-  
+
   # Liveness Probe
   liveness_probe:
     endpoint: "/health/live"
     initial_delay: 30
     period: 10
-  
+
   # Readiness Probe
   readiness_probe:
     endpoint: "/health/ready"
@@ -995,14 +995,14 @@ data_sources:
         - SERVICE
         - REGION
         - USAGE_TYPE
-  
+
   azure:
     enabled: false
     subscription_id: "${AZURE_SUBSCRIPTION_ID}"
     tenant_id: "${AZURE_TENANT_ID}"
     client_id: "${AZURE_CLIENT_ID}"
     client_secret: "${AZURE_CLIENT_SECRET}"
-  
+
   gcp:
     enabled: false
     project_id: "${GCP_PROJECT_ID}"
@@ -1020,7 +1020,7 @@ detection:
     iqr_multiplier: 1.5
     window_size: 30  # days
     min_data_points: 7
-  
+
   # Machine Learning Detection
   machine_learning:
     enabled: true
@@ -1035,7 +1035,7 @@ detection:
       - service_ratio
     training_window: 90  # days
     retrain_frequency: 30  # days
-  
+
   # Threshold Detection
   threshold:
     enabled: true
@@ -1044,17 +1044,17 @@ detection:
         operator: ">"
         value: 10000
         severity: CRITICAL
-      
+
       - field: daily_cost_change
         operator: ">"
         value: 50  # percentage
         severity: HIGH
-      
+
       - field: service_cost_ratio
         operator: ">"
         value: 30  # percentage of total
         severity: MEDIUM
-  
+
   # Pattern Detection
   patterns:
     enabled: true
@@ -1064,13 +1064,13 @@ detection:
         - DAILY
         - WEEKLY
         - MONTHLY
-    
+
     spikes:
       enabled: true
       sensitivity: MEDIUM
       min_duration: 1  # hour
       max_duration: 24  # hours
-    
+
     step_changes:
       enabled: true
       sensitivity: HIGH
@@ -1088,7 +1088,7 @@ filters:
       - cloudfront
     exclude:
       - support
-    
+
   # Region Filters
   regions:
     include:
@@ -1098,12 +1098,12 @@ filters:
     exclude:
       - cn-north-1
       - us-gov-west-1
-  
+
   # Cost Filters
   cost_thresholds:
     min_daily_cost: 10  # USD
     max_daily_cost: 100000  # USD
-  
+
   # Time Filters
   time_windows:
     business_hours_only: false
@@ -1119,7 +1119,7 @@ alerts:
       channel: "#cost-alerts"
       username: "Cost Bot"
       icon_emoji: ":money_with_wings:"
-    
+
     email:
       enabled: true
       recipients:
@@ -1128,7 +1128,7 @@ alerts:
         - cost-optimization@company.com
       from_address: "cost-alerts@company.com"
       subject_template: "🚨 Cost Anomaly Detected: {severity} - {service}"
-    
+
     pagerduty:
       enabled: true
       integration_key: "${PAGERDUTY_INTEGRATION_KEY}"
@@ -1137,14 +1137,14 @@ alerts:
         HIGH: error
         MEDIUM: warning
         LOW: info
-    
+
     webhook:
       enabled: true
       url: "${INTERNAL_WEBHOOK_URL}"
       headers:
         Authorization: "Bearer ${WEBHOOK_TOKEN}"
         Content-Type: "application/json"
-  
+
   # Alert Templates
   templates:
     slack:
@@ -1156,47 +1156,47 @@ alerts:
         *Deviation:* {deviation_percent:.1f}%
         *Severity:* {severity}
         *Detection Method:* {detection_method}
-        
+
         *Impact:*
         • Daily Excess: ${daily_excess:.2f}
         • Annual Projection: ${annual_excess:.2f}
         • Potential Savings: ${potential_savings:.2f}
-        
+
         *Recommendations:*
         {recommendations}
-        
+
         *Investigation Link:* {investigation_url}
-    
+
     email:
       subject: "Cost Anomaly Alert - {severity} - {service}"
       body: |
         <h2>Cost Anomaly Alert</h2>
-        
+
         <p><strong>Service:</strong> {service}<br>
         <strong>Region:</strong> {region}<br>
         <strong>Timestamp:</strong> {timestamp}</p>
-        
+
         <h3>Cost Details</h3>
         <table border="1">
           <tr><td>Actual Cost</td><td>${cost:.2f}</td></tr>
           <tr><td>Expected Cost</td><td>${expected_cost:.2f}</td></tr>
           <tr><td>Deviation</td><td>{deviation_percent:.1f}%</td></tr>
         </table>
-        
+
         <h3>Business Impact</h3>
         <ul>
           <li>Daily Excess Cost: ${daily_excess:.2f}</li>
           <li>Projected Annual Excess: ${annual_excess:.2f}</li>
           <li>Potential Savings: ${potential_savings:.2f}</li>
         </ul>
-        
+
         <h3>Action Required</h3>
         <ol>
           {recommendations_list}
         </ol>
-        
+
         <p><a href="{dashboard_url}">View in Dashboard</a></p>
-  
+
   # Alert Throttling
   throttling:
     enabled: true
@@ -1204,7 +1204,7 @@ alerts:
     max_alerts_per_day: 50
     cooldown_period: 3600  # seconds
     grouping_window: 300  # seconds
-  
+
   # Alert Escalation
   escalation:
     enabled: true
@@ -1212,11 +1212,11 @@ alerts:
       - severity: CRITICAL
         immediate_escalation: true
         channels: [pagerduty, phone]
-      
+
       - severity: HIGH
         escalation_after: 3600  # 1 hour
         channels: [slack, email]
-      
+
       - severity: MEDIUM
         escalation_after: 7200  # 2 hours
         channels: [slack]
@@ -1236,22 +1236,22 @@ actions:
         LOW: Low
       template: |
         Summary: Cost Anomaly - {severity} - {service}
-        
+
         Description:
         Service: {service}
         Region: {region}
         Actual Cost: ${cost:.2f}
         Expected Cost: ${expected_cost:.2f}
         Deviation: {deviation_percent:.1f}%
-        
+
         Business Impact:
         • Daily Excess: ${daily_excess:.2f}
         • Annual Projection: ${annual_excess:.2f}
         • Potential Savings: ${potential_savings:.2f}
-        
+
         Recommendations:
         {recommendations}
-    
+
     - type: trigger_workflow
       enabled: true
       workflow_id: cost-optimization-investigation
@@ -1260,7 +1260,7 @@ actions:
         service: "{service}"
         region: "{region}"
         severity: "{severity}"
-    
+
     - type: scale_down_resources
       enabled: false  # Enable with caution
       service: "{service}"
@@ -1270,13 +1270,13 @@ actions:
         - severity: CRITICAL
         - confidence: "> 0.8"
         - time_of_day: "02:00-06:00"  # Only during maintenance window
-  
+
   on_resolve:
     - type: update_jira_ticket
       enabled: true
       status: Resolved
       comment: "Anomaly auto-resolved at {timestamp}"
-    
+
     - type: send_resolution_notification
       enabled: true
       channels: [slack]
@@ -1291,7 +1291,7 @@ impact:
     - product
     - marketing
     - infrastructure
-  
+
   # ROI Tracking
   roi_tracking:
     enabled: true
@@ -1310,13 +1310,13 @@ compliance:
     - ISO27001
     - GDPR
     - HIPAA
-  
+
   data_retention:
     raw_cost_data: 90  # days
     processed_data: 365  # days
     anomaly_records: 730  # days
     audit_logs: 1095  # days
-  
+
   audit:
     enabled: true
     log_all_decisions: true
@@ -1325,7 +1325,7 @@ compliance:
       enabled: true
       algorithm: AES-256-GCM
       key_rotation_days: 90
-  
+
   # Privacy
   privacy:
     mask_sensitive_data: true
@@ -1340,13 +1340,13 @@ performance:
     enabled: true
     ttl: 3600  # seconds
     max_size: 1000
-  
+
   # Database
   database:
     connection_pool_size: 10
     query_timeout: 30
     batch_size: 1000
-  
+
   # API Rate Limiting
   rate_limiting:
     enabled: true
@@ -1361,23 +1361,23 @@ monitoring:
     endpoint: "/metrics"
     port: 9090
     scrape_interval: 15s
-    
+
     # Custom Metrics
     custom_metrics:
       - name: cost_anomalies_detected_total
         type: counter
         description: "Total number of cost anomalies detected"
         labels: [severity, service, region]
-      
+
       - name: cost_anomaly_detection_duration_seconds
         type: histogram
         description: "Duration of anomaly detection process"
         buckets: [0.1, 0.5, 1, 5, 10, 30]
-      
+
       - name: potential_savings_opportunity_usd
         type: gauge
         description: "Potential savings identified from anomalies"
-  
+
   # Logging
   logging:
     level: INFO
@@ -1387,7 +1387,7 @@ monitoring:
       max_size: 100MB
       max_files: 10
       compress: true
-    
+
     # Structured Logging
     structured_fields:
       - agent_id
@@ -1395,14 +1395,14 @@ monitoring:
       - tenant_id
       - detection_id
       - severity
-  
+
   # Tracing
   tracing:
     enabled: true
     provider: jaeger
     endpoint: "${JAEGER_ENDPOINT}"
     sampling_rate: 0.1
-  
+
   # Health Dashboard
   dashboard:
     enabled: true
@@ -1424,7 +1424,7 @@ security:
     required_scopes:
       - cost:read
       - cost:write
-    
+
   # Authorization
   authorization:
     enabled: true
@@ -1432,32 +1432,32 @@ security:
       roles:
         - name: cost_viewer
           permissions: [cost:read]
-        
+
         - name: cost_admin
           permissions: [cost:read, cost:write, cost:delete]
-        
+
         - name: cost_auditor
           permissions: [cost:read, audit:read]
-    
+
   # Network Security
   network:
     ssl:
       enabled: true
       certificate: "${SSL_CERTIFICATE}"
       private_key: "${SSL_PRIVATE_KEY}"
-    
+
     cors:
       enabled: true
       allowed_origins:
         - "https://dashboard.company.com"
         - "https://admin.company.com"
       allowed_methods: [GET, POST, PUT, DELETE]
-    
+
     rate_limiting:
       enabled: true
       requests_per_minute: 100
       burst_size: 20
-  
+
   # Secrets Management
   secrets:
     management: hashicorp_vault
@@ -1471,7 +1471,7 @@ testing:
     enabled: true
     coverage_threshold: 80
     test_data_path: "tests/data"
-  
+
   integration_tests:
     enabled: true
     environment: staging
@@ -1479,7 +1479,7 @@ testing:
       - aws_account_id: "123456789012"
         azure_subscription_id: "${TEST_AZURE_SUBSCRIPTION}"
         gcp_project_id: "${TEST_GCP_PROJECT}"
-  
+
   performance_tests:
     enabled: true
     load_profile:
@@ -1489,7 +1489,7 @@ testing:
     sla:
       p95_response_time: 1000  # ms
       error_rate: 0.01  # 1%
-  
+
   security_tests:
     enabled: true
     scans:
@@ -1498,7 +1498,7 @@ testing:
       - penetration_testing
       - vulnerability_scanning
     frequency: WEEKLY
-  
+
   # Test Data
   test_data:
     normal_patterns: "tests/data/normal_patterns.csv"
@@ -1511,7 +1511,7 @@ deployment:
   strategy: rolling_update
   max_unavailable: 25%
   max_surge: 25%
-  
+
   # Auto-scaling
   autoscaling:
     enabled: true
@@ -1525,24 +1525,24 @@ deployment:
       - type: custom
         name: cost_anomalies_per_minute
         average_value: 10
-  
+
   # Environment Variables
   env:
     - name: ENVIRONMENT
       value: production
-    
+
     - name: LOG_LEVEL
       value: INFO
-    
+
     - name: DATABASE_URL
       valueFrom:
         secretKeyRef:
           name: cost-db-secret
           key: connection-string
-    
+
     - name: AWS_ROLE_ARN
       value: "arn:aws:iam::123456789012:role/CostExplorerRole"
-  
+
   # Resource Configuration
   resources:
     requests:
@@ -1551,11 +1551,11 @@ deployment:
     limits:
       memory: "512Mi"
       cpu: "500m"
-  
+
   # Node Selectors
   node_selector:
     node-type: optimized
-  
+
   # Affinity Rules
   affinity:
     podAntiAffinity:
@@ -1600,7 +1600,7 @@ def sample_cost_data():
     """Generate sample cost data for testing."""
     data = []
     base_time = datetime(2024, 1, 1)
-    
+
     # Normal pattern: ~$100 per day with some variation
     for i in range(30):
         data.append(CostDataPoint(
@@ -1610,7 +1610,7 @@ def sample_cost_data():
             cost=100 + np.random.normal(0, 10),  # Normal variation
             currency="USD"
         ))
-    
+
     # Add an anomaly: sudden spike
     data.append(CostDataPoint(
         timestamp=base_time + timedelta(days=31),
@@ -1619,7 +1619,7 @@ def sample_cost_data():
         cost=500,  # Spike!
         currency="USD"
     ))
-    
+
     return data
 
 @pytest.fixture
@@ -1642,96 +1642,96 @@ async def agent(agent_config):
 
 class TestStatisticalDetector:
     """Test statistical detection methods."""
-    
+
     def test_zscore_detection_normal_data(self):
         """Test Z-score detection with normal data."""
         detector = StatisticalDetector(window_size=7, z_score_threshold=2.5)
-        
+
         # Normal data: 100 +/- 10
         data = [95, 102, 98, 105, 101, 99, 103, 104]
         result = detector.detect_using_zscore(data)
-        
+
         assert result.is_anomaly == False
         assert result.confidence < 1.0
         assert result.severity == Severity.LOW
-    
+
     def test_zscore_detection_anomaly(self):
         """Test Z-score detection with anomaly."""
         detector = StatisticalDetector(window_size=7, z_score_threshold=2.5)
-        
+
         # Normal data followed by spike
         data = [100, 102, 98, 105, 101, 99, 103, 500]  # Spike at the end
         result = detector.detect_using_zscore(data)
-        
+
         assert result.is_anomaly == True
         assert result.confidence > 0.5
         assert result.severity in [Severity.HIGH, Severity.CRITICAL]
         assert result.deviation_percent > 100
-    
+
     def test_iqr_detection(self):
         """Test IQR detection method."""
         detector = StatisticalDetector(window_size=10)
-        
+
         # Create data with outliers
         data = list(range(90, 110))  # 90-109
         data.append(500)  # Outlier
-        
+
         result = detector.detect_using_iqr(data)
-        
+
         assert result.is_anomaly == True
         assert result.anomaly_score > 0
-    
+
     def test_insufficient_data(self):
         """Test detection with insufficient data."""
         detector = StatisticalDetector(window_size=30)
-        
+
         # Only 5 data points, less than window size
         data = [100, 102, 98, 105, 101]
         result = detector.detect_using_zscore(data)
-        
+
         assert result.is_anomaly == False
         assert result.confidence == 0.0
 
 class TestMLDetector:
     """Test machine learning detection."""
-    
+
     def test_ml_detection(self):
         """Test ML-based anomaly detection."""
         detector = MLDetector(contamination=0.1, n_estimators=50)
-        
+
         # Create training data
         n_samples = 100
         n_features = 5
-        
+
         # Normal data: multivariate normal distribution
         normal_data = np.random.randn(n_samples, n_features)
-        
+
         # Train the model
         detector.train(normal_data)
-        
+
         # Test with normal data point
         normal_point = np.random.randn(1, n_features)
         result_normal = detector.detect(normal_point)
-        
+
         # Test with anomalous data point
         anomaly_point = normal_point * 10  # Scale up to create anomaly
         result_anomaly = detector.detect(anomaly_point)
-        
+
         # Normal point should not be anomaly (or low probability)
         # Anomaly point should be detected as anomaly
-        
+
         assert detector.is_trained == True
-    
+
     def test_ml_not_trained_error(self):
         """Test error when detecting without training."""
         detector = MLDetector()
-        
+
         with pytest.raises(ValueError, match="must be trained"):
             detector.detect(np.array([[1, 2, 3]]))
 
 class TestCostAnomalyDetectorAgent:
     """Test the main Cost Anomaly Detector Agent."""
-    
+
     @pytest.mark.asyncio
     async def test_agent_initialization(self, agent):
         """Test agent initialization."""
@@ -1739,31 +1739,31 @@ class TestCostAnomalyDetectorAgent:
         assert agent.version == "1.0.0"
         assert agent.statistical_detector is not None
         assert agent.ml_detector is not None
-    
+
     @pytest.mark.asyncio
     async def test_execute_with_mock_data(self, agent, sample_cost_data):
         """Test agent execution with mock data."""
         # Mock the data collection method
         with patch.object(agent, '_collect_cost_data') as mock_collect:
             mock_collect.return_value = sample_cost_data
-            
+
             context = {
                 'lookback_days': 30,
                 'detection_type': 'statistical',
                 'filters': []
             }
-            
+
             result = await agent.execute(context)
-            
+
             assert result['success'] == True
             assert 'anomalies_detected' in result
             assert 'results' in result
             assert 'metadata' in result
-            
+
             # Should detect at least one anomaly in our test data
             anomalies = [r for r in result['results'] if r['is_anomaly']]
             assert len(anomalies) >= 1
-    
+
     @pytest.mark.asyncio
     async def test_apply_filters(self, agent, sample_cost_data):
         """Test filtering of cost data."""
@@ -1771,33 +1771,33 @@ class TestCostAnomalyDetectorAgent:
             {'field': 'service', 'operator': 'EQ', 'value': 'ec2'},
             {'field': 'cost', 'operator': 'GT', 'value': 200}
         ]
-        
+
         filtered = agent._apply_filters(sample_cost_data, filters)
-        
+
         # All filtered data should meet criteria
         for point in filtered:
             assert point.service == 'ec2'
             assert point.cost > 200
-        
+
         # Should have filtered out some data
         assert len(filtered) < len(sample_cost_data)
-    
+
     @pytest.mark.asyncio
     async def test_detection_with_different_methods(self, agent):
         """Test detection with different methods."""
         # Create test data
         costs = [100] * 20 + [500]  # Normal pattern + spike
-        
+
         # Test statistical detection
         context_statistical = {'detection_type': 'statistical'}
         # This would be called internally by _detect_anomalies
-        
+
         # Test ML detection
         context_ml = {'detection_type': 'ml'}
-        
+
         # We would need to mock the data preparation and ML model
         # For now, just verify the code path doesn't crash
-    
+
     def test_business_impact_calculation(self, agent):
         """Test business impact calculation."""
         anomaly = AnomalyDetectionResult(
@@ -1811,17 +1811,17 @@ class TestCostAnomalyDetectorAgent:
             detected_at=datetime.utcnow(),
             rule_name="test"
         )
-        
+
         impact = agent._calculate_business_impact(anomaly, "ec2", "us-east-1")
-        
+
         assert 'daily_excess_cost' in impact
         assert 'projected_annual_excess' in impact
         assert 'potential_savings' in impact
-        
+
         # Check calculations
         assert impact['daily_excess_cost'] == 500  # 1000 - 500
         assert impact['projected_annual_excess'] == 500 * 365
-    
+
     def test_recommendation_generation(self, agent):
         """Test recommendation generation."""
         anomaly = AnomalyDetectionResult(
@@ -1835,26 +1835,26 @@ class TestCostAnomalyDetectorAgent:
             detected_at=datetime.utcnow(),
             rule_name="test"
         )
-        
+
         recommendations = agent._generate_recommendations(anomaly)
-        
+
         assert len(recommendations) > 0
-        
+
         # Check recommendation types
         rec_types = {r['type'] for r in recommendations}
         assert 'investigate' in rec_types
         assert 'cost_optimization' in rec_types
         assert 'monitoring' in rec_types
-    
+
     @pytest.mark.asyncio
     async def test_ml_model_training(self, agent, sample_cost_data):
         """Test ML model training."""
         success = await agent.train_ml_model(sample_cost_data)
-        
+
         # Training should succeed with our sample data
         assert success == True
         assert agent.ml_detector.is_trained == True
-    
+
     def test_detection_summary(self, agent):
         """Test detection summary generation."""
         # Add some mock detections to history
@@ -1871,26 +1871,26 @@ class TestCostAnomalyDetectorAgent:
                 },
                 'context': {}
             })
-        
+
         summary = agent.get_detection_summary(days=7)
-        
+
         assert 'total_anomalies' in summary
         assert 'total_savings_opportunity' in summary
         assert 'service_breakdown' in summary
-        
+
         assert summary['total_anomalies'] == 5
         assert summary['total_savings_opportunity'] == 5000  # 5 * 1000
 
 class TestIntegration:
     """Integration tests for the Cost Anomaly Detector."""
-    
+
     @pytest.mark.integration
     @pytest.mark.asyncio
     async def test_end_to_end_detection(self, agent_config):
         """Test end-to-end anomaly detection workflow."""
         agent = CostAnomalyDetectorAgent(agent_config)
         await agent.initialize()
-        
+
         # Create a realistic scenario
         context = {
             'lookback_days': 30,
@@ -1902,7 +1902,7 @@ class TestIntegration:
             'alert_channels': ['slack'],
             'severity_threshold': 'medium'
         }
-        
+
         # Mock AWS client response
         with patch('boto3.client') as mock_boto:
             mock_ce = Mock()
@@ -1920,12 +1920,12 @@ class TestIntegration:
                 ]
             }
             mock_boto.return_value = mock_ce
-            
+
             result = await agent.execute(context)
-            
+
             assert result['success'] == True
             assert 'anomalies_detected' in result
-    
+
     @pytest.mark.integration
     @pytest.mark.asyncio
     async def test_alert_generation(self):
@@ -1936,7 +1936,7 @@ class TestIntegration:
 
 class TestPerformance:
     """Performance tests for the Cost Anomaly Detector."""
-    
+
     @pytest.mark.performance
     @pytest.mark.asyncio
     async def test_detection_performance(self, agent):
@@ -1945,7 +1945,7 @@ class TestPerformance:
         n_points = 10000
         data = []
         base_time = datetime(2024, 1, 1)
-        
+
         for i in range(n_points):
             data.append(CostDataPoint(
                 timestamp=base_time + timedelta(hours=i),
@@ -1954,7 +1954,7 @@ class TestPerformance:
                 cost=100 + np.random.normal(0, 20),
                 currency="USD"
             ))
-        
+
         # Add some anomalies
         for i in range(10):
             data.append(CostDataPoint(
@@ -1964,33 +1964,33 @@ class TestPerformance:
                 cost=1000,  # Anomaly
                 currency="USD"
             ))
-        
+
         context = {
             'lookback_days': 90,
             'detection_type': 'statistical',
             'filters': []
         }
-        
+
         # Mock data collection to return our large dataset
         with patch.object(agent, '_collect_cost_data') as mock_collect:
             mock_collect.return_value = data
-            
+
             import time
             start_time = time.time()
-            
+
             result = await agent.execute(context)
-            
+
             end_time = time.time()
             duration = end_time - start_time
-            
+
             # Performance assertion: should process within reasonable time
             assert duration < 30.0  # 30 seconds for 10k points
-            
+
             logger.info(f"Processed {n_points + 10} data points in {duration:.2f} seconds")
-            
+
             assert result['success'] == True
             assert result['metadata']['data_points_analyzed'] > 0
-    
+
     @pytest.mark.performance
     def test_memory_usage(self, agent):
         """Test memory usage during detection."""
@@ -2000,7 +2000,7 @@ class TestPerformance:
 
 class TestSecurity:
     """Security tests for the Cost Anomaly Detector."""
-    
+
     @pytest.mark.security
     def test_input_validation(self, agent):
         """Test input validation for security."""
@@ -2008,13 +2008,13 @@ class TestSecurity:
         malicious_filters = [
             {'field': 'service', 'operator': 'EQ', 'value': "ec2'; DROP TABLE costs; --"}
         ]
-        
+
         # Should handle gracefully, not crash
         try:
             agent._apply_filters([], malicious_filters)
         except Exception:
             pytest.fail("Should handle malicious input gracefully")
-    
+
     @pytest.mark.security
     @pytest.mark.asyncio
     async def test_authentication_integration(self):
@@ -2143,7 +2143,7 @@ alerts:
       - severity: CRITICAL
         immediate_escalation: true
         channels: [pagerduty, phone]
-      
+
       - severity: HIGH
         escalation_after: 3600
         channels: [slack, email]
@@ -2204,19 +2204,19 @@ rule_definition = """
 rule "EC2 Cost Spike":
     description: "Detect sudden spikes in EC2 costs"
     severity: HIGH
-    
+
     detection:
         type: STATISTICAL
         algorithm: Z_SCORE
         window: 7d
         threshold:
             upper: 3.0
-    
+
     filters:
         - field: service
           operator: EQ
           value: "ec2"
-    
+
     alerts:
         channels:
             - slack: "#cost-alerts"
@@ -2263,7 +2263,7 @@ rules:
     operator: ">"
     value: 10000
     severity: CRITICAL
-  
+
   - field: daily_cost_change
     operator: ">"
     value: 50  # percentage
@@ -2312,7 +2312,7 @@ templates:
       *Region:* {region}
       *Cost:* ${cost:.2f}
       *Deviation:* {deviation_percent:.1f}%
-      
+
       *Investigation Link:* {dashboard_url}
 ```
 
@@ -2803,7 +2803,7 @@ groups:
       summary: "Cost Anomaly Detector is down"
       description: "The Cost Anomaly Detector has been down for more than 5 minutes."
       runbook: "https://runbooks.company.com/cost-anomaly-detector-down"
-  
+
   - alert: CostAnomalyDetectorHighLatency
     expr: histogram_quantile(0.95, rate(cost_anomaly_detection_duration_seconds_bucket[5m])) > 10
     for: 2m
@@ -2814,7 +2814,7 @@ groups:
       summary: "High detection latency"
       description: "95th percentile of detection latency is above 10 seconds for 2 minutes."
       runbook: "https://runbooks.company.com/cost-detection-latency"
-  
+
   # Resource Usage Rules
   - alert: CostAnomalyDetectorHighMemory
     expr: container_memory_working_set_bytes{container="cost-anomaly-detector"} > 400 * 1024 * 1024
@@ -2826,7 +2826,7 @@ groups:
       summary: "High memory usage"
       description: "Cost Anomaly Detector memory usage is above 400MB for 5 minutes."
       runbook: "https://runbooks.company.com/cost-detector-memory"
-  
+
   - alert: CostAnomalyDetectorHighCPU
     expr: rate(container_cpu_usage_seconds_total{container="cost-anomaly-detector"}[5m]) > 0.4
     for: 5m
@@ -2837,7 +2837,7 @@ groups:
       summary: "High CPU usage"
       description: "Cost Anomaly Detector CPU usage is above 40% for 5 minutes."
       runbook: "https://runbooks.company.com/cost-detector-cpu"
-  
+
   # Business Logic Rules
   - alert: CostAnomalyDetectionFailureRate
     expr: rate(cost_anomaly_detection_errors_total[5m]) / rate(cost_anomaly_detection_attempts_total[5m]) > 0.1
@@ -2849,7 +2849,7 @@ groups:
       summary: "High detection failure rate"
       description: "More than 10% of detection attempts are failing."
       runbook: "https://runbooks.company.com/cost-detection-failures"
-  
+
   - alert: NoCostAnomaliesDetected
     expr: increase(cost_anomalies_detected_total[1h]) == 0
     for: 6h
@@ -2860,7 +2860,7 @@ groups:
       summary: "No anomalies detected"
       description: "No cost anomalies have been detected in the last 6 hours (unusual pattern)."
       runbook: "https://runbooks.company.com/no-anomalies-detected"
-  
+
   - alert: HighAnomalyVolume
     expr: rate(cost_anomalies_detected_total[15m]) > 10
     for: 5m
@@ -2871,7 +2871,7 @@ groups:
       summary: "High volume of anomalies"
       description: "More than 10 anomalies detected per minute for 5 minutes."
       runbook: "https://runbooks.company.com/high-anomaly-volume"
-  
+
   # Data Source Rules
   - alert: AWSDataSourceDown
     expr: cost_data_source_availability{source="aws"} == 0
@@ -2884,7 +2884,7 @@ groups:
       summary: "AWS cost data source unavailable"
       description: "Unable to fetch cost data from AWS for 15 minutes."
       runbook: "https://runbooks.company.com/aws-cost-data-unavailable"
-  
+
   # Alerting System Rules
   - alert: AlertDeliveryFailure
     expr: rate(alert_delivery_failures_total[5m]) > 0
@@ -2896,7 +2896,7 @@ groups:
       summary: "Alert delivery failures"
       description: "Failed to deliver one or more alerts in the last 2 minutes."
       runbook: "https://runbooks.company.com/alert-delivery-failures"
-  
+
   # ML Model Rules
   - alert: MLModelStale
     expr: (time() - ml_model_last_trained_timestamp) > 2592000  # 30 days in seconds
@@ -2908,7 +2908,7 @@ groups:
       summary: "ML model is stale"
       description: "ML model has not been retrained in over 30 days."
       runbook: "https://runbooks.company.com/ml-model-stale"
-  
+
   - alert: MLModelLowAccuracy
     expr: ml_model_accuracy < 0.8
     for: 1h
@@ -2919,7 +2919,7 @@ groups:
       summary: "ML model low accuracy"
       description: "ML model accuracy is below 80% for 1 hour."
       runbook: "https://runbooks.company.com/ml-model-low-accuracy"
-  
+
   # Cache Performance Rules
   - alert: CacheMissRateHigh
     expr: rate(cache_misses_total[5m]) / rate(cache_requests_total[5m]) > 0.3
@@ -2931,7 +2931,7 @@ groups:
       summary: "High cache miss rate"
       description: "Cache miss rate is above 30% for 5 minutes."
       runbook: "https://runbooks.company.com/cache-performance"
-  
+
   # Business Impact Rules
   - alert: HighPotentialSavings
     expr: potential_savings_opportunity_usd > 100000
@@ -2943,7 +2943,7 @@ groups:
       summary: "High potential savings identified"
       description: "Potential savings opportunity exceeds $100,000."
       runbook: "https://runbooks.company.com/high-savings-opportunity"
-  
+
   - alert: CriticalCostAnomalyDetected
     expr: cost_anomalies_detected_total{severity="critical"} > 0
     for: 0m
@@ -2967,7 +2967,7 @@ Business value and ROI calculation for the Cost Anomaly Detector.
 
 class ROICalculator:
     """Calculates business value and ROI for the Cost Anomaly Detector."""
-    
+
     def __init__(self, implementation_cost: float = 50000):
         """
         Args:
@@ -2975,14 +2975,14 @@ class ROICalculator:
         """
         self.implementation_cost = implementation_cost
         self.metrics_history = []
-    
+
     def calculate_roi(self, savings_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Calculate ROI based on savings data.
-        
+
         Args:
             savings_data: Dictionary containing savings metrics
-            
+
         Returns:
             Dictionary with ROI calculations
         """
@@ -2990,10 +2990,10 @@ class ROICalculator:
         monthly_savings = savings_data.get('monthly_savings', 0)
         anomalies_prevented = savings_data.get('anomalies_prevented', 0)
         manual_effort_saved = savings_data.get('manual_effort_saved_hours', 0)
-        
+
         # Calculate annual savings
         annual_savings = monthly_savings * 12
-        
+
         # Calculate ROI
         if self.implementation_cost > 0:
             roi_percentage = (annual_savings / self.implementation_cost) * 100
@@ -3001,18 +3001,18 @@ class ROICalculator:
         else:
             roi_percentage = float('inf')
             payback_period_months = 0
-        
+
         # Calculate value of manual effort saved
         # Assuming $100/hour for engineering time
         effort_savings_value = manual_effort_saved * 100 * 12  # Annual value
-        
+
         # Total value created
         total_annual_value = annual_savings + effort_savings_value
-        
+
         # Net Present Value (simplified)
         discount_rate = 0.1  # 10%
         npv = self._calculate_npv(annual_savings, discount_rate, 3)  # 3 years
-        
+
         return {
             'implementation_cost': self.implementation_cost,
             'monthly_savings': monthly_savings,
@@ -3031,26 +3031,26 @@ class ROICalculator:
                 'efficiency_gain': (manual_effort_saved * 100) / (40 * 52)  # vs full-time employee
             }
         }
-    
-    def _calculate_npv(self, annual_cash_flow: float, 
-                      discount_rate: float, 
+
+    def _calculate_npv(self, annual_cash_flow: float,
+                      discount_rate: float,
                       years: int) -> float:
         """Calculate Net Present Value."""
         npv = 0
         for year in range(1, years + 1):
             npv += annual_cash_flow / ((1 + discount_rate) ** year)
         return npv - self.implementation_cost
-    
+
     def _calculate_breakeven(self, monthly_savings: float) -> int:
         """Calculate breakeven month."""
         if monthly_savings <= 0:
             return float('inf')
         return int(self.implementation_cost / monthly_savings)
-    
+
     def generate_business_case(self, savings_data: Dict[str, Any]) -> Dict[str, Any]:
         """Generate comprehensive business case."""
         roi_data = self.calculate_roi(savings_data)
-        
+
         business_case = {
             'executive_summary': self._generate_executive_summary(roi_data),
             'problem_statement': {
@@ -3107,26 +3107,26 @@ class ROICalculator:
             },
             'recommendation': 'Proceed with implementation based on strong ROI projection'
         }
-        
+
         return business_case
-    
+
     def _generate_executive_summary(self, roi_data: Dict[str, Any]) -> str:
         """Generate executive summary."""
         return f"""
         EXECUTIVE SUMMARY
-        
-        The Cost Anomaly Detector provides automated, AI-powered detection of unusual 
-        spending patterns across cloud providers. 
-        
+
+        The Cost Anomaly Detector provides automated, AI-powered detection of unusual
+        spending patterns across cloud providers.
+
         Key Benefits:
         • Annual Savings: ${roi_data['annual_savings']:,.0f}
         • ROI: {roi_data['roi_percentage']:.1f}%
         • Payback Period: {roi_data['payback_period_months']:.1f} months
         • Efficiency Gain: {roi_data['metrics']['efficiency_gain']:.0f}% reduction in manual effort
-        
+
         Implementation cost: ${self.implementation_cost:,.0f}
         Total annual value created: ${roi_data['total_annual_value']:,.0f}
-        
+
         Recommendation: Strong business case with rapid ROI.
         """
 
@@ -3144,11 +3144,11 @@ ROI_ANALYSIS = """
 
 ## Executive Summary
 
-**Implementation Cost:** $50,000  
-**Annual Savings:** $240,000  
-**ROI:** 380%  
-**Payback Period:** 2.5 months  
-**NPV (3 years):** $547,000  
+**Implementation Cost:** $50,000
+**Annual Savings:** $240,000
+**ROI:** 380%
+**Payback Period:** 2.5 months
+**NPV (3 years):** $547,000
 
 ## Detailed Analysis
 
@@ -3226,8 +3226,8 @@ Simple Payback Period = Implementation Cost / Monthly Net Benefits
 | 2 | $372,000 | $36,000 | $336,000 | $622,000 |
 | 3 | $372,000 | $36,000 | $336,000 | $958,000 |
 
-**NPV (10% discount rate):** $547,000  
-**IRR:** 672%  
+**NPV (10% discount rate):** $547,000
+**IRR:** 672%
 
 ### 4. Sensitivity Analysis
 
@@ -3630,11 +3630,11 @@ def main():
     print("8. Business Value Calculation")
     print("9. ROI Analysis")
     print("10. Production Readiness Checklist")
-    
+
     # Create directory structure
     base_dir = Path(__file__).parent / "cost_anomaly_detector"
     base_dir.mkdir(exist_ok=True)
-    
+
     # Create subdirectories
     (base_dir / "generated").mkdir(exist_ok=True)
     (base_dir / "config").mkdir(exist_ok=True)
@@ -3644,50 +3644,50 @@ def main():
     (base_dir / "monitoring").mkdir(exist_ok=True)
     (base_dir / "business_value").mkdir(exist_ok=True)
     (base_dir / "checklist").mkdir(exist_ok=True)
-    
+
     # Write DSL definition
     with open(base_dir / "cost_anomaly_detector.dsl", "w") as f:
         f.write(DSL_DEFINITION)
-    
+
     # Write generated code
     with open(base_dir / "generated" / "cost_anomaly_detector.py", "w") as f:
         # Need to write the actual generated code here
         pass
-    
+
     # Write configuration
     with open(base_dir / "config" / "cost_anomaly_detector.yaml", "w") as f:
         f.write(CONFIG_YAML)
-    
+
     # Write test suite
     with open(base_dir / "tests" / "test_cost_anomaly_detector.py", "w") as f:
         # Need to write the actual test code here
         pass
-    
+
     # Write documentation
     with open(base_dir / "docs" / "README.md", "w") as f:
         f.write(DOCUMENTATION)
-    
+
     # Write deployment manifests
     with open(base_dir / "kubernetes" / "deployment.yaml", "w") as f:
         f.write(K8S_DEPLOYMENT)
-    
+
     # Write monitoring configuration
     with open(base_dir / "monitoring" / "prometheus-rules.yaml", "w") as f:
         f.write(PROMETHEUS_RULES)
-    
+
     # Write business value calculator
     with open(base_dir / "business_value" / "roi_calculator.py", "w") as f:
         # Need to write the actual ROI calculator code here
         pass
-    
+
     # Write ROI analysis
     with open(base_dir / "business_value" / "roi_analysis.md", "w") as f:
         f.write(ROI_ANALYSIS)
-    
+
     # Write production checklist
     with open(base_dir / "checklist" / "production_readiness.md", "w") as f:
         f.write(PRODUCTION_CHECKLIST)
-    
+
     print(f"\nExample files created in: {base_dir}")
     print("\nTo run the example:")
     print("1. cd examples/basic/cost_anomaly_detector")

@@ -206,7 +206,7 @@ spec:
       - name: init-cache-warmup
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
-        command: ['sh', '-c', 'python -c "from src.registry.cache.redis_handler import RedisHandler; import asyncio; asyncio.run(RedisHandler().warmup())"']
+        command: ['sh', '-c', 'python -c "from microagents.registry.cache.redis_handler import RedisHandler; import asyncio; asyncio.run(RedisHandler().warmup())"']
         securityContext:
           runAsUser: 1001
           runAsGroup: 1001
